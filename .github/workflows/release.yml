@@ -24,6 +24,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16.14.2
+
+      - name: Install Linux dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxcb1-dev libx11-dev
     
       - name: Install Dependencies
         run: yarn install --cache-folder .yarn --network-timeout 100000
