@@ -1,4 +1,4 @@
-name: Release
+name: Release 
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
 
       - name: Install Node.js, NPM and Yarn
         uses: actions/setup-node@v3
@@ -26,8 +26,7 @@ jobs:
           node-version: 16.14.2
     
       - name: Install Dependencies
-        if: steps.node-cache.outputs.cache-hit != 'true'
-        run: yarn install  --cache-folder .yarn --network-timeout 100000
+        run: yarn install --cache-folder .yarn --network-timeout 100000
         
       - name: Build App
         run: yarn run ${{ matrix.dist }}
@@ -35,22 +34,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Upload Installer
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: BetterCrewLink Installer ${{ runner.os }}
           path: ${{ matrix.installer }}
           if-no-files-found: error
           
       - name: Upload Unpacked 64bit
-        uses: actions/upload-artifact@v2
-        if: ${{ matrix.os == 'windows-latest'}}
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.os == 'windows-latest' }}
         with:
           name: BetterCrewLink Unpacked 64bit 
           path: 'dist/win-unpacked'
           
       - name: Upload Unpacked 32bit
-        uses: actions/upload-artifact@v2
-        if: ${{ matrix.os == 'windows-latest'}}
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.os == 'windows-latest' }}
         with:
           name: BetterCrewLink Unpacked 32bit 
           path: 'dist/win-ia32-unpacked'
