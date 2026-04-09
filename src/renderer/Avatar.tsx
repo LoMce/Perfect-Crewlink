@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Player } from '../common/AmongUsState';
 import {
+	getGeneratedBase,
 	getCosmetic,
+	peekGeneratedBase,
 	redAlive,
 	cosmeticType,
 	getHatDementions,
@@ -23,6 +25,7 @@ import VolumeUp from '@mui/icons-material/VolumeUp';
 import IconButton from '@mui/material/IconButton';
 import Grid from '@mui/material/GridLegacy';
 import { ModsType } from '../common/Mods';
+import { PlayerColorContext } from './contexts';
 
 const useStyles = makeStyles(() => ({
 	canvas: {
@@ -74,6 +77,7 @@ export interface CanvasProps {
 	usingRadio: boolean | undefined;
 	onClick?: () => void;
 	mod: ModsType;
+	playerColors?: string[][];
 }
 
 export interface AvatarProps {
@@ -93,6 +97,7 @@ export interface AvatarProps {
 	isUsingRadio?: boolean;
 	onConfigChange?: () => void;
 	mod: ModsType;
+	playerColors?: string[][];
 }
 
 const Avatar: React.FC<AvatarProps> = function ({
@@ -112,6 +117,7 @@ const Avatar: React.FC<AvatarProps> = function ({
 	overflow = false,
 	onConfigChange,
 	mod,
+	playerColors,
 }: AvatarProps) {
 	const classes = useStyles();
 	let icon;
@@ -148,6 +154,7 @@ const Avatar: React.FC<AvatarProps> = function ({
 			overflow={overflow}
 			usingRadio={isUsingRadio}
 			mod={mod}
+			playerColors={playerColors}
 		/>
 	);
 
@@ -304,7 +311,11 @@ function Canvas({
 	usingRadio,
 	onClick,
 	mod,
+	playerColors: providedPlayerColors,
 }: CanvasProps) {
+	const playerColors = useContext(PlayerColorContext);
+	const resolvedPlayerColors = providedPlayerColors?.length ? providedPlayerColors : playerColors;
+	const [baseSrc, setBaseSrc] = useState(() => peekGeneratedBase(color, isAlive, resolvedPlayerColors) ?? redAlive);
 	const hatImg = useMemo(() => {
 		if (!initializedHats) {
 			initializeHats();
@@ -321,7 +332,7 @@ function Canvas({
 				skin: getHatDementions(skin, mod),
 			},
 		};
-	}, [color, hat, skin, visor, initializedHats, isAlive]);
+	}, [color, hat, skin, visor, initializedHats, isAlive, mod]);
 
 	const classes = useCanvasStyles({
 		isAlive,
@@ -340,6 +351,36 @@ function Canvas({
 	const onload = (e: any) => {
 		e.target.style.display = '';
 	};
+	//@ts-ignore
+	const onBaseError = (e: any) => {
+		e.target.onError = null;
+		e.target.src = redAlive;
+	};
+
+	useEffect(() => {
+		const cachedBase = peekGeneratedBase(color, isAlive, resolvedPlayerColors);
+		if (cachedBase) {
+			setBaseSrc(cachedBase);
+			return;
+		}
+
+		let cancelled = false;
+		void getGeneratedBase(color, isAlive, resolvedPlayerColors)
+			.then((nextBase) => {
+				if (!cancelled) {
+					setBaseSrc(nextBase);
+				}
+			})
+			.catch(() => {
+				if (!cancelled) {
+					setBaseSrc(redAlive);
+				}
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [color, isAlive, resolvedPlayerColors]);
 
 	const hatElement = (
 		<>
@@ -364,13 +405,10 @@ function Canvas({
 					}}
 				>
 					<img
-						src={hatImg.base}
+						src={baseSrc}
 						className={classes.base}
 						//@ts-ignore
-						onError={(e: any) => {
-							e.target.onError = null;
-							e.target.src = redAlive;
-						}}
+						onError={onBaseError}
 					/>
 
 					<img src={hatImg.skin} className={classes.skin} onError={onerror} onLoad={onload} />

@@ -1,6 +1,6 @@
 {
   "name": "perfect-crewlink",
-  "version": "3.1.4",
+  "version": "1.0.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "description": "Perfect Crewlink desktop client rewritten with TypeScript, Tauri, and Rust",
@@ -45,7 +45,7 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-i18next": "^15.5.1",
-    "simple-peer": "^9.11.1",
+    "simple-peer": "https://codeload.github.com/vrnagy/simple-peer/tar.gz/35fcb6b25dd15c1e11ff32d522cf7b8016714bc3",
     "socket.io-client": "^2.4.0",
     "source-code-pro": "^2.38.0",
     "typeface-varela": "^1.1.13",

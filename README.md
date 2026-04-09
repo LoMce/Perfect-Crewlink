@@ -5,82 +5,95 @@
 </p>
 
 <p align="center">
-  <strong>A modern desktop fork of BetterCrewLink rebuilt for performance, stability, and mod support.</strong>
+  <strong>The modern Among Us proximity chat desktop client built for speed, stability, mods, and clean streaming.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/App-Perfect%20Crewlink-BA68C8" alt="App: Perfect Crewlink">
-  <img src="https://img.shields.io/badge/Repo-Perfect%20Crewlink-1D1A23" alt="Repo: Perfect Crewlink">
-  <img src="https://img.shields.io/badge/Frontend-TypeScript%20%2B%20Vite-3178C6?logo=typescript&logoColor=white" alt="TypeScript + Vite">
-  <img src="https://img.shields.io/badge/Desktop-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Tauri">
-  <img src="https://img.shields.io/badge/Native-Rust-000000?logo=rust&logoColor=white" alt="Rust">
-  <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D4?logo=windows11&logoColor=white" alt="Windows 10/11">
-  <img src="https://img.shields.io/badge/Linux-AppImage-6E40C9?logo=linux&logoColor=white" alt="Linux AppImage">
+  <a href="https://github.com/artriy/Perfect-Crewlink/releases/latest"><img src="https://img.shields.io/github/v/release/artriy/Perfect-Crewlink?display_name=tag&label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/TypeScript-Vite-3178C6?logo=typescript&logoColor=white" alt="TypeScript and Vite">
+  <img src="https://img.shields.io/badge/Desktop-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Tauri desktop shell">
+  <img src="https://img.shields.io/badge/Native-Rust-000000?logo=rust&logoColor=white" alt="Rust native layer">
+  <img src="https://img.shields.io/badge/Windows-Portable%20%2B%20Installer-0078D4?logo=windows11&logoColor=white" alt="Windows packages">
+  <img src="https://img.shields.io/badge/Linux-AppImage-FCC624?logo=linux&logoColor=black" alt="Linux AppImage">
 </p>
 
-Perfect Crewlink is a modern desktop fork of BetterCrewLink rebuilt around **TypeScript + Vite**,
-**Tauri**, and **Rust**. It keeps the core proximity-chat experience, then pushes the desktop side
-further with faster startup, lower overhead, cleaner overlay behavior, stronger window handling,
-better settings flow, and better compatibility with current modded play.
+Perfect Crewlink is a full desktop fork of the BetterCrewLink lineage, rebuilt around
+**TypeScript + Vite**, **Tauri**, and **Rust**. It keeps the Among Us proximity chat experience
+people want, then upgrades the desktop client around it: faster startup, lower overhead, sharper
+window handling, cleaner overlays, stronger mod support, and better day-to-day quality.
 
 ## Why Perfect Crewlink
 
-- Faster, lighter desktop runtime than the old Electron-era stack.
-- Cleaner overlay lifecycle with better focus handling, fewer ghost windows, and fewer startup artifacts.
-- Instant settings behavior so overlay and lobby options apply live while you edit them.
-- Stronger mod support, including **AleLudu mode** for resized meeting cards.
-- Dedicated Windows and Linux packaging, including AppImage releases.
-- A codebase that is far easier to build, debug, and extend than the legacy desktop client.
+- **Full rewrite, lighter runtime**  
+  Built on Tauri and Rust instead of the older desktop stack for a faster, leaner client.
 
-## What you get
+- **More stable overlay behavior**  
+  Better attach logic, better alt-tab behavior, cleaner focus handling, and fewer ghost overlay bugs.
 
-- Full desktop rewrite centered on **TypeScript + Tauri + Rust**
-- Perfect Crewlink app branding, executable, installer, and storage identity
-- AleLudu compatibility toggle for meeting overlay positioning
-- Windows and Linux release support, including AppImage packaging
-- Public lobby browser with in-app access
-- More overlay positioning options and live overlay preview while editing settings
-- Bug fixes across startup, overlay visibility, settings sync, lobby publishing, and lobby browser windows
-- Better window management around focus, taskbar behavior, and shutdown
-- Repo layout and tooling that are ready to clone, install, and build immediately
+- **Better mod support**  
+  Includes **AleLudu Mode** for resized meeting-card layouts and improved support for extended color palettes.
 
-## Highlights
+- **Better multiplayer interoperability**  
+  Improved BetterCrewLink peer compatibility and cleaner signaling behavior across mixed lobbies.
 
-| Area | What changed |
+- **Better streamer controls**  
+  Privacy controls for lobby code visibility, persistent mute/deafen state, and cleaner browser behavior.
+
+## Feature Highlights
+
+| Area | What Perfect Crewlink adds |
 | --- | --- |
-| Identity | Dedicated executable, installer, bundle identifier, and local settings storage |
-| Overlay | Cleaner startup, focus, visibility, and settings behavior |
-| Public lobbies | Faster access, more reliable publishing, cleaner browser window |
-| Mod support | Includes **AleLudu mode** for custom meeting-card layouts |
-| Packaging | Windows installer plus Linux AppImage release assets |
+| Desktop runtime | Modern TypeScript + Vite renderer with a Rust-native Tauri shell |
+| Overlay | Better window attach logic, cleaner focus behavior, more position options, top-center backgroundless mode, and live settings updates |
+| Public lobby browser | Direct lobby code display, region shown under the code, instant one-click copy, smarter mod filtering, and code persistence when lobbies flip in-game |
+| Mod support | AleLudu compatibility, expanded palette sync for modded colors, and cleaner overlay placement for large/modded meetings |
+| Voice | Better BetterCrewLink interop, more reliable peer negotiation, and persistent mute/deafen preferences |
+| Customization | Overlay visibility modes, always-show-talking-player mode, compact/background variants, privacy toggles, and advanced audio/server settings |
+| Packaging | Windows portable exe, Windows installer, and Linux AppImage releases |
 
-## Legacy vs rewrite
+## What Ships In v1.0.0
 
-| Area | Legacy BetterCrewLink desktop | Perfect Crewlink |
-| --- | --- | --- |
-| Desktop shell | Older desktop stack | Tauri desktop shell |
-| Native integration | Harder to maintain | Rust-native window/process layer |
-| Frontend workflow | Older web tooling | TypeScript + Vite |
-| Overlay behavior | More timing and lifecycle issues | Stable init sync, better focus handling, live settings updates |
-| Mod compatibility | Generic support | Includes **AleLudu mode** for custom meeting card layouts |
-| Settings flow | Some settings only applied after closing dialogs | Settings apply immediately where expected |
-| Build flow | Older docs and mixed tooling | `npm` + Tauri workflow documented end to end |
+- Full `Perfect Crewlink` branding across the repo, desktop app, installer, bundle ID, and release assets
+- Rewritten desktop stack using **TypeScript + Vite + Tauri + Rust**
+- Overlay fixes for taskbar disappearance, alt-tab behavior, and game-only visibility
+- Overlay options for:
+  - talking-only avatars by default
+  - optional always-show-all-players mode
+  - top center without background
+  - top center with background
+- Public lobby browser improvements:
+  - direct lobby code display
+  - region shown below each code
+  - instant copy button
+  - smarter incompatible-mod handling
+  - code retention when a tracked lobby moves from lobby state into in-game state
+- Better compatibility with BetterCrewLink users in the same room
+- AleLudu Mode for resized meeting cards
+- Persistent mic mute and speaker mute state between launches
+- Better handling for expanded / modded player colors so avatars stop collapsing to red
 
-## What ships here
+## Download
 
-This repository builds the **Perfect Crewlink** desktop app for Windows and Linux, with its own
-desktop binaries, installer output, bundle identifier, and release assets.
+Grab the latest release from:
 
-## Quick start
+- [Perfect Crewlink Releases](https://github.com/artriy/Perfect-Crewlink/releases/latest)
+
+Release assets include:
+
+- `perfectcrewlink.exe`
+- `Perfect.Crewlink_1.0.0_x64-setup.exe`
+- `Perfect.Crewlink_1.0.0_amd64.AppImage`
+
+## Build From Source
 
 ### Prerequisites
 
-- Node.js 20 or newer
+- Node.js 20+
 - Rust stable toolchain
-- Windows 10 or Windows 11 with Visual Studio 2022 Build Tools and WebView2 Runtime
-- Or Ubuntu 22.04+ with GTK/WebKitGTK build dependencies for Tauri
+- Windows 10 or 11 with Visual Studio 2022 Build Tools and WebView2 Runtime
+- Or Ubuntu 22.04+ with GTK/WebKitGTK dependencies for Tauri AppImage builds
 
-### Run in development
+### Development
 
 ```bash
 git clone https://github.com/artriy/Perfect-Crewlink.git
@@ -89,28 +102,39 @@ npm ci
 npm run tauri -- dev
 ```
 
-### Build a release locally
+### Production build
 
 ```bash
 npm run typecheck
 npm run tauri -- build
 ```
 
-Build outputs:
+Typical outputs:
 
 - `src-tauri/target/release/perfectcrewlink.exe`
-- `src-tauri/target/release/bundle/nsis/Perfect Crewlink_3.1.4_x64-setup.exe`
+- `src-tauri/target/release/bundle/nsis/Perfect Crewlink_1.0.0_x64-setup.exe`
 - `src-tauri/target/release/bundle/appimage/*.AppImage`
 
-## Development notes
+## Development Guide
 
-- The renderer lives in [`src/renderer`](src/renderer).
-- Shared desktop/game contracts live in [`src/common`](src/common).
-- Native windowing, process attach, and overlay logic live in [`src-tauri`](src-tauri).
-- Static assets and translations live in [`static`](static).
-- Tauri helper scripts live in [`scripts`](scripts).
+### Repository layout
 
-Useful commands:
+- `src/renderer`  
+  React UI, overlay UI, settings, lobby browser, and voice client logic
+
+- `src/common`  
+  Shared desktop/game contracts, state types, IPC messages, and shared utilities
+
+- `src-tauri`  
+  Native windowing, process attach, overlay control, asset generation, and Among Us reader logic
+
+- `static`  
+  Logos, avatar templates, translation files, and static assets
+
+- `scripts`  
+  Build helpers and Tauri launcher helpers
+
+### Useful commands
 
 ```bash
 npm ci
@@ -121,30 +145,28 @@ npm run build
 npm run tauri -- build
 ```
 
-## Compatibility focus
+## Release Workflow
 
-This desktop rewrite is aimed at modern proximity chat usage on Windows and includes the recent
-fixes for:
+GitHub Actions builds release assets for:
 
-- instant settings sync
-- lobby browser behavior
-- overlay focus and visibility
-- alt-tab and taskbar interaction
-- public lobby publishing
-- AleLudu meeting-card compatibility
+- Windows portable executable
+- Windows NSIS installer
+- Linux AppImage
 
-## Contributing
+The release workflow attaches assets directly to the GitHub release tag so the repo is ready to
+clone, build, and publish without extra local packaging steps.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, build requirements, and pull
-request expectations.
+## Changelog
+
+- [CHANGELOG.md](CHANGELOG.md)
 
 ## Credits
 
-- Original BetterCrewLink project: [OhMyGuus/BetterCrewLink](https://github.com/OhMyGuus/BetterCrewLink)
 - Original CrewLink project: [ottomated/CrewLink](https://github.com/ottomated/CrewLink)
+- Original BetterCrewLink project: [OhMyGuus/BetterCrewLink](https://github.com/OhMyGuus/BetterCrewLink)
 
-Perfect Crewlink builds on that lineage, then takes the desktop client in a different direction
-with a Tauri + Rust rewrite, stronger desktop behavior, and a release flow built for current use.
+Perfect Crewlink takes that lineage and pushes the desktop client forward with a modern rewrite,
+more reliable runtime behavior, and a cleaner release story.
 
 ## License
 

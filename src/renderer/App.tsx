@@ -31,7 +31,7 @@ import { AmongUsState, GameState } from '../common/AmongUsState';
 import { CameraLocation, MapType } from '../common/AmongusMap';
 import { DEFAULT_PLAYERCOLORS } from '../common/playerColors';
 import { OVERLAY_STATE_KEYS, writeOverlayState } from '../common/overlay-state';
-import { getInitialGameState, startGameSession } from '../common/tauri-game';
+import { getInitialGameState, getPlayerColors, startGameSession } from '../common/tauri-game';
 import { ISettings } from '../common/ISettings';
 import { bridge } from './bridge';
 import theme from './theme';
@@ -180,7 +180,9 @@ export default function App(): JSX.Element {
 	const [diaOpen, setDiaOpen] = useState(true);
 	const [error, setError] = useState('');
 	const [updaterState, setUpdaterState] = useState<AutoUpdaterState>({ state: 'unavailable' });
-	const playerColors = useRef<string[][]>(DEFAULT_PLAYERCOLORS);
+	const [playerColors, setPlayerColorsState] = useState<string[][]>(DEFAULT_PLAYERCOLORS);
+	const playerColorsRef = useRef(playerColors);
+	const playerColorSyncInFlight = useRef(false);
 	const syncInFlight = useRef(false);
 	const mainWindowShown = useRef(false);
 	const [settings, setSettings] = useState(SettingsStore.store);
@@ -189,10 +191,10 @@ export default function App(): JSX.Element {
 	const gameStateRef = useRef(gameState);
 
 	const sendOverlayBootstrap = () => {
-		writeOverlayState(OVERLAY_STATE_KEYS.playerColors, playerColors.current);
+		writeOverlayState(OVERLAY_STATE_KEYS.playerColors, playerColorsRef.current);
 		writeOverlayState(OVERLAY_STATE_KEYS.settings, settingsRef.current);
 		writeOverlayState(OVERLAY_STATE_KEYS.gameState, gameStateRef.current);
-		bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, playerColors.current);
+		bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, playerColorsRef.current);
 		bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, settingsRef.current);
 		bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_GAME_STATE_CHANGED, gameStateRef.current);
 	};
@@ -221,8 +223,39 @@ export default function App(): JSX.Element {
 	}, [settings]);
 
 	useEffect(() => {
+		playerColorsRef.current = playerColors;
+	}, [playerColors]);
+
+	useEffect(() => {
 		gameStateRef.current = gameState;
 	}, [gameState]);
+
+	const ensurePlayerColors = async (candidateState?: AmongUsState | null) => {
+		const stateToCheck = candidateState ?? gameStateRef.current;
+		const maxColorId = Math.max(
+			-1,
+			...(stateToCheck?.players ?? [])
+				.map((player) => player.colorId)
+				.filter((colorId) => colorId >= 0)
+		);
+
+		if (maxColorId < 0 || maxColorId < playerColorsRef.current.length || playerColorSyncInFlight.current) {
+			return;
+		}
+
+		playerColorSyncInFlight.current = true;
+		try {
+			const colors = await getPlayerColors();
+			if (colors?.length) {
+				playerColorsRef.current = colors;
+				setPlayerColorsState(colors);
+				writeOverlayState(OVERLAY_STATE_KEYS.playerColors, colors);
+				bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, colors);
+			}
+		} finally {
+			playerColorSyncInFlight.current = false;
+		}
+	};
 
 	useEffect(() => {
 		let shouldInit = true;
@@ -260,6 +293,7 @@ export default function App(): JSX.Element {
 				if (hasResolvedGameState(nextState)) {
 					setState(AppState.VOICE);
 					setGameState(nextState);
+					void ensurePlayerColors(nextState);
 					setError('');
 				}
 			} catch (sessionError) {
@@ -285,6 +319,7 @@ export default function App(): JSX.Element {
 		const onState = (_: unknown, newState: AmongUsState) => {
 			setState(AppState.VOICE);
 			setGameState(newState);
+			void ensurePlayerColors(newState);
 			setError('');
 		};
 		const onError = (_: unknown, nextError: string) => {
@@ -294,7 +329,8 @@ export default function App(): JSX.Element {
 			setUpdaterState((old) => ({ ...old, ...nextState }));
 		};
 		const onColorsChange = (_: unknown, colors: string[][]) => {
-			playerColors.current = colors;
+			playerColorsRef.current = colors;
+			setPlayerColorsState(colors);
 			writeOverlayState(OVERLAY_STATE_KEYS.playerColors, colors);
 			bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, colors);
 		};
@@ -335,9 +371,9 @@ export default function App(): JSX.Element {
 
 	useEffect(() => {
 		settingsRef.current = settings;
-		writeOverlayState(OVERLAY_STATE_KEYS.playerColors, playerColors.current);
+		writeOverlayState(OVERLAY_STATE_KEYS.playerColors, playerColorsRef.current);
 		writeOverlayState(OVERLAY_STATE_KEYS.settings, settings);
-		bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, playerColors.current);
+		bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, playerColorsRef.current);
 		bridge.send(IpcMessages.SEND_TO_OVERLAY, IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, settings);
 	}, [settings]);
 
@@ -357,7 +393,7 @@ export default function App(): JSX.Element {
 		);
 
 	return (
-		<PlayerColorContext.Provider value={playerColors.current}>
+		<PlayerColorContext.Provider value={playerColors}>
 			<GameStateContext.Provider value={gameState}>
 				<HostSettingsContext.Provider value={[hostLobbySettings, setHostLobbySettings]}>
 					<SettingsContext.Provider value={[settings, setSetting, setLobbySetting]}>

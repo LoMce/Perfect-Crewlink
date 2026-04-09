@@ -111,8 +111,18 @@ fn get_initial_game_state(session: State<'_, GameSessionManager>) -> Option<Amon
 }
 
 #[tauri::command]
+fn get_player_colors(session: State<'_, GameSessionManager>) -> Vec<[String; 2]> {
+    session.snapshot().lock().unwrap().player_colors.clone()
+}
+
+#[tauri::command]
 fn request_mod(session: State<'_, GameSessionManager>) -> String {
     session.current_mod()
+}
+
+#[tauri::command]
+fn generate_avatar_base(color: String, shadow: String, is_alive: bool) -> Result<String, String> {
+    assets::generate_base_data_url(&color, &shadow, is_alive)
 }
 
 #[tauri::command]
@@ -457,7 +467,9 @@ pub fn run() {
             trigger_app_update,
             start_game_session,
             get_initial_game_state,
+            get_player_colors,
             request_mod,
+            generate_avatar_base,
             fetch_offset_lookup,
             fetch_offsets,
             reset_hotkeys,

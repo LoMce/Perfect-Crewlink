@@ -133,11 +133,16 @@ function getServerLabel(server: string): string {
 	return servers[server] ?? server;
 }
 
+function normalizeLobbyCode(value: string | null | undefined): string | null {
+	const trimmed = (value ?? '').trim().toUpperCase();
+	return /^[A-Z]{4,6}$/.test(trimmed) ? trimmed : null;
+}
+
 interface LobbyCodePreview {
 	code: string | null;
 	region: string;
 	available: boolean;
-	reason?: 'blocked_incompatible' | 'incompatible' | 'unavailable';
+	reason?: 'blocked_incompatible' | 'incompatible' | 'retrying' | 'unavailable';
 }
 
 interface LobbyBrowserProps {
@@ -150,6 +155,7 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const [lobbyCodes, setLobbyCodes] = useState<Record<number, LobbyCodePreview>>({});
 	const [copiedLobbyId, setCopiedLobbyId] = useState<number | null>(null);
+	const [showLobbyCode, setShowLobbyCode] = useState(() => !SettingsStore.get('hideCode', false));
 	const [ignoreIncompatibleMods, setIgnoreIncompatibleMods] = useState(() =>
 		SettingsStore.get('ignoreIncompatibleLobbyBrowserMods', true)
 	);
@@ -160,13 +166,15 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 	const languageNames = languages as Record<string, { name?: string }>;
 	
 	useEffect(() => {
-		const syncIgnoreIncompatibleMods = () =>
+		const syncBrowserSettings = () => {
 			setIgnoreIncompatibleMods(SettingsStore.get('ignoreIncompatibleLobbyBrowserMods', true));
+			setShowLobbyCode(!SettingsStore.get('hideCode', false));
+		};
 
-		syncIgnoreIncompatibleMods();
+		syncBrowserSettings();
 		const handleStorage = (event: StorageEvent) => {
 			if (!event.key || event.key === SETTINGS_STORAGE_KEY) {
-				syncIgnoreIncompatibleMods();
+				syncBrowserSettings();
 			}
 		};
 
@@ -224,6 +232,16 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 	}, []);
 
 	useEffect(() => {
+		if (showLobbyCode) {
+			return;
+		}
+
+		pendingCodeRequests.current.clear();
+		setCopiedLobbyId(null);
+		setLobbyCodes({});
+	}, [showLobbyCode]);
+
+	useEffect(() => {
 		setLobbyCodes((old) => {
 			let changed = false;
 			const next = { ...old };
@@ -257,7 +275,7 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 	}, [ignoreIncompatibleMods, mod, publiclobbies]);
 
 	useEffect(() => {
-		if (!socket) {
+		if (!socket || !showLobbyCode) {
 			return;
 		}
 
@@ -273,21 +291,51 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 			pendingCodeRequests.current.add(lobby.id);
 			socket.emit('join_lobby', lobby.id, (state: number, codeOrError: string, server: string) => {
 				pendingCodeRequests.current.delete(lobby.id);
-				const normalizedError = codeOrError.toLowerCase();
-				const reason =
-					state === 0 ? undefined : normalizedError.includes('incompatible') ? 'incompatible' : 'unavailable';
-				setLobbyCodes((old) => ({
-					...old,
-					[lobby.id]: {
-						code: state === 0 ? codeOrError : null,
-						region: getServerLabel(String(server || lobby.server)),
-						available: state === 0,
-						reason,
-					},
-				}));
+				const normalizedError = (codeOrError ?? '').toLowerCase();
+				const isIncompatibleResponse = normalizedError.includes('incompatible');
+				const returnedCode = normalizeLobbyCode(codeOrError);
+
+				if (state !== 0 && ignoreIncompatibleMods && isIncompatibleResponse) {
+					setLobbyCodes((old) => ({
+						...old,
+						[lobby.id]: {
+							code: null,
+							region: getServerLabel(String(server || lobby.server)),
+							available: false,
+							reason: 'retrying',
+						},
+					}));
+					window.setTimeout(() => {
+						setLobbyCodes((old) => {
+							if (old[lobby.id]?.reason !== 'retrying') {
+								return old;
+							}
+							const next = { ...old };
+							delete next[lobby.id];
+							return next;
+						});
+					}, 2000);
+					return;
+				}
+
+				setLobbyCodes((old) => {
+					const existingPreview = old[lobby.id];
+					const code = state === 0 ? returnedCode : returnedCode ?? existingPreview?.code ?? null;
+					const reason = !code && state !== 0 ? (isIncompatibleResponse ? 'incompatible' : 'unavailable') : undefined;
+
+					return {
+						...old,
+						[lobby.id]: {
+							code,
+							region: getServerLabel(String(server || lobby.server)),
+							available: Boolean(code),
+							reason,
+						},
+					};
+				});
 			});
 		}
-	}, [ignoreIncompatibleMods, lobbyCodes, mod, publiclobbies, socket]);
+	}, [ignoreIncompatibleMods, lobbyCodes, mod, publiclobbies, showLobbyCode, socket]);
 
 	useEffect(() => {
 		if (copiedLobbyId === null) {
@@ -346,10 +394,18 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 									.map((row: PublicLobby) => {
 										const lobbyCodePreview = lobbyCodes[row.id];
 										const lobbyCode = lobbyCodePreview?.code;
-										const isLobbyCodeAvailable = lobbyCodePreview?.available ?? false;
+										const isLobbyCodeAvailable = showLobbyCode && (lobbyCodePreview?.available ?? false);
 										const lobbyCodeLabel =
-											lobbyCode ??
-											(lobbyCodePreview?.reason?.includes('incompatible') ? 'INCOMPATIBLE' : lobbyCodePreview ? 'UNAVAILABLE' : '...');
+											!showLobbyCode
+												? 'HIDDEN'
+												: lobbyCode ??
+													(lobbyCodePreview?.reason === 'retrying'
+														? '...'
+														: lobbyCodePreview?.reason?.includes('incompatible')
+															? 'INCOMPATIBLE'
+															: lobbyCodePreview
+																? 'UNAVAILABLE'
+																: '...');
 
 										return (
 										<StyledTableRow key={row.id}>
@@ -385,7 +441,15 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 															{lobbyCodePreview?.region ?? getServerLabel(row.server)}
 														</span>
 													</div>
-													<Tooltip title={copiedLobbyId === row.id ? 'Copied' : 'Copy code'}>
+													<Tooltip
+														title={
+															!showLobbyCode
+																? 'Lobby code hidden'
+																: copiedLobbyId === row.id
+																	? 'Copied'
+																	: 'Copy code'
+														}
+													>
 														<span>
 															<IconButton
 																className={classes.copyButton}

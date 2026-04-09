@@ -226,6 +226,7 @@ const Overlay: React.FC = function () {
 					position={settings.overlayPosition}
 					compactOverlay={settings.compactOverlay}
 					alwaysShowPlayers={settings.alwaysShowOverlayPlayers}
+					playerColors={playerColors}
 				/>
 			)}
 		</>
@@ -238,6 +239,7 @@ interface AvatarOverlayProps {
 	position: ISettings['overlayPosition'];
 	compactOverlay: boolean;
 	alwaysShowPlayers: boolean;
+	playerColors: string[][];
 }
 
 const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
@@ -246,6 +248,7 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 	position,
 	compactOverlay,
 	alwaysShowPlayers,
+	playerColors,
 }: AvatarOverlayProps) => {
 	const positionParse = position.replace('1', '');
 
@@ -330,6 +333,7 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 						overflow={isOnSide && !showName}
 						showHat={true}
 						mod={voiceState.mod}
+						playerColors={playerColors}
 					/>
 				</div>
 				{showName && (
