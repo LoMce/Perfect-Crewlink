@@ -73,16 +73,11 @@ window handling, cleaner overlays, stronger mod support, and better day-to-day q
 
 ## Download
 
-Grab the latest release from:
+Get Perfect Crewlink from the project releases page:
 
 - [Perfect Crewlink Releases](https://github.com/artriy/Perfect-Crewlink/releases/latest)
 
-Release assets include:
-
-- `perfectcrewlink.exe`
-- `Perfect Crewlink x64 setup`
-
-Linux is supported, but GitHub releases currently ship Windows assets only. Linux builds are expected to come from source on a Linux machine.
+Windows downloads include a portable desktop build and an installer. Linux is supported through source builds on a Linux machine.
 
 ## Build From Source
 
@@ -170,19 +165,6 @@ npm run typecheck
 npm run build
 npm run tauri -- build
 ```
-
-## Release Workflow
-
-GitHub Actions builds and attaches Windows release assets directly to the GitHub release tag:
-
-- Windows portable executable
-- Windows NSIS installer
-
-Linux remains supported through documented source builds.
-
-## Changelog
-
-- [CHANGELOG.md](CHANGELOG.md)
 
 ## Credits
 
