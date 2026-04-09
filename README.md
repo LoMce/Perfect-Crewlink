@@ -35,12 +35,14 @@ stronger mod compatibility.
 - Better stability across startup, attach, settings, lobby browser, and shutdown flows.
 - Better mod support, including **AleLudu mode** for resized meeting cards.
 - Cleaner development workflow built around `npm`, Vite, Tauri, and Rust.
+- Release packaging for **Windows installers** and **Linux AppImage** builds.
 
 ## Highlights
 
 - Full desktop rewrite centered on **TypeScript + Tauri + Rust**
 - BetterCrewLink app branding preserved
 - AleLudu compatibility toggle for meeting overlay positioning
+- Windows and Linux release support, including AppImage packaging
 - Public lobby browser with in-app access
 - More overlay positioning options and live overlay preview while editing settings
 - Bug fixes across startup, overlay visibility, settings sync, lobby publishing, and lobby browser windows
@@ -69,11 +71,10 @@ this maintained rewrite.
 
 ### Prerequisites
 
-- Windows 10 or Windows 11
 - Node.js 20 or newer
 - Rust stable toolchain
-- Visual Studio 2022 Build Tools with Desktop C++ support
-- Microsoft Edge WebView2 Runtime
+- Windows 10 or Windows 11 with Visual Studio 2022 Build Tools and WebView2 Runtime
+- Or Ubuntu 22.04+ with GTK/WebKitGTK build dependencies for Tauri
 
 ### Run in development
 
@@ -95,6 +96,7 @@ Build outputs:
 
 - `src-tauri/target/release/bettercrewlink.exe`
 - `src-tauri/target/release/bundle/nsis/BetterCrewLink_3.1.4_x64-setup.exe`
+- `src-tauri/target/release/bundle/appimage/*.AppImage`
 
 ## Development notes
 
