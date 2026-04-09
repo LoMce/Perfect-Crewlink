@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>A full desktop rewrite of BetterCrewLink built for a faster, cleaner, separate install.</strong>
+  <strong>A modern desktop fork of BetterCrewLink rebuilt for performance, stability, and mod support.</strong>
 </p>
 
 <p align="center">
@@ -18,25 +18,19 @@
   <img src="https://img.shields.io/badge/Linux-AppImage-6E40C9?logo=linux&logoColor=white" alt="Linux AppImage">
 </p>
 
-Perfect Crewlink is the shipped app name now. The desktop client in this repository is a complete
-rewrite of the original BetterCrewLink desktop app: **TypeScript + Vite** in the renderer,
-**Tauri** for the desktop shell, and **Rust** for native window, process, and overlay work.
-
-This repo exists because the old BetterCrewLink desktop path was carrying too much legacy weight.
-The current app is not a thin fork. It is a practical rewrite focused on faster startup, lower
-desktop overhead, better window behavior, cleaner overlay handling, easier iteration, and much
-stronger mod compatibility.
+Perfect Crewlink is a modern desktop fork of BetterCrewLink rebuilt around **TypeScript + Vite**,
+**Tauri**, and **Rust**. It keeps the core proximity-chat experience, then pushes the desktop side
+further with faster startup, lower overhead, cleaner overlay behavior, stronger window handling,
+better settings flow, and better compatibility with current modded play.
 
 ## Why Perfect Crewlink
 
-- Separate app identity so it can be installed alongside the original BetterCrewLink without
-  collisions in executable names, installer identity, bundle identifier, or local settings.
-- Faster, lighter desktop runtime than the old Electron-era path.
+- Faster, lighter desktop runtime than the old Electron-era stack.
 - Cleaner overlay lifecycle with better focus handling, fewer ghost windows, and fewer startup artifacts.
 - Instant settings behavior so overlay and lobby options apply live while you edit them.
 - Stronger mod support, including **AleLudu mode** for resized meeting cards.
-- Modern build and release flow based on `npm`, Vite, Tauri, and Rust.
-- First-class packaging for **Windows installers** and **Linux AppImage** releases.
+- Dedicated Windows and Linux packaging, including AppImage releases.
+- A codebase that is far easier to build, debug, and extend than the legacy desktop client.
 
 ## What you get
 
@@ -50,12 +44,11 @@ stronger mod compatibility.
 - Better window management around focus, taskbar behavior, and shutdown
 - Repo layout and tooling that are ready to clone, install, and build immediately
 
-## Release highlights
+## Highlights
 
 | Area | What changed |
 | --- | --- |
-| Branding | The app now ships as **Perfect Crewlink**, not BetterCrewLink |
-| Side-by-side install | Separate executable, installer name, bundle identifier, and local storage keys |
+| Identity | Dedicated executable, installer, bundle identifier, and local settings storage |
 | Overlay | Cleaner startup, focus, visibility, and settings behavior |
 | Public lobbies | Faster access, more reliable publishing, cleaner browser window |
 | Mod support | Includes **AleLudu mode** for custom meeting-card layouts |
@@ -75,9 +68,8 @@ stronger mod compatibility.
 
 ## What ships here
 
-This repository builds the **Perfect Crewlink** desktop app. It now has its own executable,
-installer, bundle identifier, and local storage keys so it can coexist with the original
-BetterCrewLink desktop app on the same system.
+This repository builds the **Perfect Crewlink** desktop app for Windows and Linux, with its own
+desktop binaries, installer output, bundle identifier, and release assets.
 
 ## Quick start
 
@@ -151,8 +143,8 @@ request expectations.
 - Original BetterCrewLink project: [OhMyGuus/BetterCrewLink](https://github.com/OhMyGuus/BetterCrewLink)
 - Original CrewLink project: [ottomated/CrewLink](https://github.com/ottomated/CrewLink)
 
-Perfect Crewlink is inspired by the original BetterCrewLink repository structure and feature set,
-but it is now its own rewritten Tauri desktop client and install target.
+Perfect Crewlink builds on that lineage, then takes the desktop client in a different direction
+with a Tauri + Rust rewrite, stronger desktop behavior, and a release flow built for current use.
 
 ## License
 
