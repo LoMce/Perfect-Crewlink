@@ -1,3 +1,4 @@
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use crate::game_session::SharedSessionSnapshot;
 use image::{ImageFormat, RgbaImage};
 use std::{
@@ -14,6 +15,12 @@ static IMAGE_CACHE: OnceLock<Mutex<HashMap<String, Vec<u8>>>> = OnceLock::new();
 
 fn cache() -> &'static Mutex<HashMap<String, Vec<u8>>> {
     IMAGE_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub fn generate_base_data_url(color: &str, shadow: &str, is_alive: bool) -> Result<String, String> {
+    let template = if is_alive { PLAYER_TEMPLATE } else { GHOST_TEMPLATE };
+    let bytes = recolor_png(template, color, shadow)?;
+    Ok(format!("data:image/png;base64,{}", STANDARD.encode(bytes)))
 }
 
 pub fn handle_static(snapshot: &SharedSessionSnapshot, request: Request<Vec<u8>>) -> Response<Vec<u8>> {

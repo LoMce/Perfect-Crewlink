@@ -254,6 +254,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 	const [playerConfigs] = useState<playerConfigMap>(settingsRef.current.playerConfigMap);
 	const socketClientsRef = useRef(socketClients);
 	const [peerConnections, setPeerConnections] = useState<PeerConnections>({});
+	const peerConnectionsRef = useRef<PeerConnections>({});
 	const convolverBuffer = useRef<AudioBuffer | null>(null);
 	const playerSocketIdsRef = useRef<numberStringMap>({});
 	const classes = useStyles();
@@ -270,8 +271,8 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 	const audioElements = useRef<AudioElements>({});
 	const [audioConnected, setAudioConnected] = useState<AudioConnected>({});
 
-	const [deafenedState, setDeafened] = useState(false);
-	const [mutedState, setMuted] = useState(false);
+	const [deafenedState, setDeafened] = useState(settings.startDeafened);
+	const [mutedState, setMuted] = useState(settings.startMuted);
 	const [connected, setConnected] = useState(false);
 	const [serverHostId, setServerHostId] = useState(0);
 	const previousLobbyCode = useRef(gameState.lobbyCode);
@@ -554,15 +555,15 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 
 	function disconnectPeer(peer: string) {
 		console.log('Disconnect peer: ', peer);
-		const connection = peerConnections[peer];
+		const connection = peerConnectionsRef.current[peer];
 		if (!connection) {
 			return;
 		}
 		connection.destroy();
-		setPeerConnections((connections) => {
-			delete connections[peer];
-			return connections;
-		});
+		const nextConnections = { ...peerConnectionsRef.current };
+		delete nextConnections[peer];
+		peerConnectionsRef.current = nextConnections;
+		setPeerConnections(nextConnections);
 		disconnectAudioElement(peer);
 	}
 	// Handle pushToTalk, if set
@@ -600,7 +601,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 	// Emit lobby settings to connected peers
 	useEffect(() => {
 		if (!resolvedIsHost) return;
-		Object.values(peerConnections).forEach((peer) => {
+		Object.values(peerConnectionsRef.current).forEach((peer) => {
 			try {
 				console.log('sendxx > ', JSON.stringify(settings.localLobbySettings));
 				peer.send(JSON.stringify(settings.localLobbySettings));
@@ -842,8 +843,8 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 	// const [audioContext] = useState<AudioContext>(() => new AudioContext());
 	const connectionStuff = useRef<ConnectionStuff>({
 		pushToTalkMode: settings.pushToTalkMode,
-		deafened: false,
-		muted: false,
+		deafened: settings.startDeafened,
+		muted: settings.startMuted,
 		impostorRadio: null,
 		toggleMute: () => {
 			/*empty*/
@@ -880,7 +881,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		impostorRadioClientId.current = pressing ? myPlayer.clientId : -1;
 		for (const player of otherPlayers.filter((o) => o.isImpostor && !o.bugged && !o.isDead)) {
 			const peer = playerSocketIdsRef.current[player.clientId];
-			const connection = peerConnections[peer];
+			const connection = peerConnectionsRef.current[peer];
 			if (connection !== undefined && connection.writable)
 				connection?.send(JSON.stringify({ impostorRadio: connectionStuff.current.impostorRadio }));
 		}
@@ -959,10 +960,13 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		});
 
 		socket.on('setClient', (socketId: string, client: Client) => {
-			setSocketClients((old) => ({ ...old, [socketId]: client }));
+			const nextClients = { ...socketClientsRef.current, [socketId]: client };
+			socketClientsRef.current = nextClients;
+			setSocketClients(nextClients);
 		});
 
 		socket.on('setClients', (clients: SocketClientMap) => {
+			socketClientsRef.current = clients;
 			setSocketClients(clients);
 		});
 
@@ -1036,7 +1040,10 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 			connectionStuff.current.stream = stream;
 			connectionStuff.current.instream = inStream;
 
-			inStream.getAudioTracks()[0].enabled = settings.pushToTalkMode !== pushToTalkOptions.PUSH_TO_TALK;
+			inStream.getAudioTracks()[0].enabled =
+				!connectionStuff.current.deafened &&
+				!connectionStuff.current.muted &&
+				settings.pushToTalkMode !== pushToTalkOptions.PUSH_TO_TALK;
 
 			connectionStuff.current.toggleDeafen = () => {
 				connectionStuff.current.deafened = !connectionStuff.current.deafened;
@@ -1045,6 +1052,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 					!connectionStuff.current.muted &&
 					connectionStuff.current.pushToTalkMode !== pushToTalkOptions.PUSH_TO_TALK;
 				setDeafened(connectionStuff.current.deafened);
+				setSetting('startDeafened', connectionStuff.current.deafened);
 			};
 
 			connectionStuff.current.toggleMute = () => {
@@ -1059,6 +1067,8 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 					connectionStuff.current.pushToTalkMode !== pushToTalkOptions.PUSH_TO_TALK;
 				setMuted(connectionStuff.current.muted);
 				setDeafened(connectionStuff.current.deafened);
+				setSetting('startMuted', connectionStuff.current.muted);
+				setSetting('startDeafened', connectionStuff.current.deafened);
 			};
 
 			bridge.on(IpcRendererMessages.TOGGLE_DEAFEN, connectionStuff.current.toggleDeafen);
@@ -1084,7 +1094,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 				setOtherTalking({});
 				if (lobbyCode === 'MENU') {
 					resetServerHost();
-					Object.keys(peerConnections).forEach((k) => {
+					Object.keys(peerConnectionsRef.current).forEach((k) => {
 						disconnectPeer(k);
 					});
 					setSocketClients({});
@@ -1101,19 +1111,27 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 
 			setConnect({ connect });
 
-			function createPeerConnection(peer: string, initiator: boolean) {
+			function createPeerConnection(peer: string, initiator: boolean, client?: Client): Peer.Instance | undefined {
 				console.log('CreatePeerConnection: ', peer, initiator);
-				const connection = new Peer({
-					stream,
-					initiator, // @ts-ignore-line
-					iceRestartEnabled: true,
-					config: settingsRef.current.natFix ? DEFAULT_ICE_CONFIG_TURN : iceConfig,
-				});
+				if (client) {
+					disconnectClient(client);
+				}
+				let connection: Peer.Instance;
+				try {
+					connection = new Peer({
+						stream,
+						initiator, // @ts-ignore-line
+						iceRestartEnabled: true,
+						config: settingsRef.current.natFix ? DEFAULT_ICE_CONFIG_TURN : iceConfig,
+					});
+				} catch (error) {
+					console.error('CreatePeerConnection failed', peer, initiator, error);
+					return undefined;
+				}
 
-				setPeerConnections((connections) => {
-					connections[peer] = connection;
-					return connections;
-				});
+				const nextConnections = { ...peerConnectionsRef.current, [peer]: connection };
+				peerConnectionsRef.current = nextConnections;
+				setPeerConnections(nextConnections);
 
 				connection.on('connect', () => {
 					setTimeout(() => {
@@ -1220,13 +1238,39 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 				return connection;
 			}
 
+			function normalizeSignalData(data: unknown): Peer.SignalData | null {
+				if (!data || typeof data !== 'object') {
+					return null;
+				}
+				const signalData = data as Record<string, unknown>;
+
+				// Older clients may emit ICE candidates without a `type` field.
+				if (Object.prototype.hasOwnProperty.call(signalData, 'candidate') && typeof signalData.type !== 'string') {
+					const candidate =
+						signalData.candidate && typeof signalData.candidate === 'object'
+							? (signalData.candidate as RTCIceCandidate)
+							: (signalData as unknown as RTCIceCandidate);
+					return {
+						type: 'candidate',
+						candidate,
+					} as Peer.SignalData;
+				}
+
+				return data as Peer.SignalData;
+			}
+
 			socket.on('join', async (peer: string, client: Client) => {
-				createPeerConnection(peer, true);
-				setSocketClients((old) => ({ ...old, [peer]: client }));
+				if (!peerConnectionsRef.current[peer]) {
+					createPeerConnection(peer, true, client);
+				}
+				if (client) {
+					socketClientsRef.current = { ...socketClientsRef.current, [peer]: client };
+					setSocketClients((old) => ({ ...old, [peer]: client }));
+				}
 			});
 
-			socket.on('signal', ({ data, from }: { data: Peer.SignalData; from: string }) => {
-				if (Object.prototype.hasOwnProperty.call(data, 'mobilePlayerInfo')) {
+			socket.on('signal', ({ data, from, client }: { data: unknown; from: string; client?: Client }) => {
+				if (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'mobilePlayerInfo')) {
 					const mobiledata = data as unknown as mobileHostInfo;
 					if (
 						mobiledata.mobilePlayerInfo.code === hostRef.current.code &&
@@ -1237,14 +1281,31 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 					}
 					return;
 				}
-
-				let connection: Peer.Instance;
-				if (peerConnections[from]) {
-					connection = peerConnections[from];
-				} else {
-					connection = createPeerConnection(from, false);
+				if (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'mobileHostInfo')) {
+					return;
 				}
-				connection.signal(data);
+				if (client) {
+					socketClientsRef.current = { ...socketClientsRef.current, [from]: client };
+					setSocketClients((old) => ({ ...old, [from]: client }));
+				}
+				const normalizedData = normalizeSignalData(data);
+				if (!normalizedData) {
+					return;
+				}
+
+				let connection: Peer.Instance | undefined = peerConnectionsRef.current[from];
+				if (!connection) {
+					connection = createPeerConnection(from, false, client);
+				}
+				if (!connection) {
+					return;
+				}
+				try {
+					connection.signal(normalizedData);
+				} catch (error) {
+					console.error('Signal apply failed', from, error);
+					return;
+				}
 			});
 		},
 		(error) => {
@@ -1259,7 +1320,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		return () => {
 			hostRef.current.mobileRunning = false;
 			socket.emit('leave');
-			Object.keys(peerConnections).forEach((k) => {
+			Object.keys(peerConnectionsRef.current).forEach((k) => {
 				disconnectPeer(k);
 			});
 			connectionStuff.current.socket?.close();
@@ -1384,7 +1445,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 			(gameState.oldGameState === GameState.DISCUSSION || gameState.oldGameState === GameState.TASKS)
 		) {
 			hostRef.current.mobileRunning = false;
-			connect.connect(gameState.lobbyCode, myPlayer.id, gameState.clientId, resolvedIsHost);
+			connect.connect(gameState.lobbyCode, myPlayer.clientId, gameState.clientId, resolvedIsHost);
 		} else if (
 			gameState.oldGameState !== GameState.UNKNOWN &&
 			gameState.oldGameState !== GameState.MENU &&
@@ -1395,7 +1456,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 			hostRef.current.mobileRunning = false; // On change from a game to menu, exit from the current game properly
 			resetServerHost();
 			connectionStuff.current.socket?.emit('leave');
-			Object.keys(peerConnections).forEach((k) => {
+			Object.keys(peerConnectionsRef.current).forEach((k) => {
 				disconnectPeer(k);
 			});
 			setOtherDead({});

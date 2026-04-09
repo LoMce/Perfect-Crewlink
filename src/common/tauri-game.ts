@@ -14,6 +14,10 @@ export async function getInitialGameState(): Promise<AmongUsState | null> {
 	return invoke<AmongUsState | null>('get_initial_game_state');
 }
 
+export async function getPlayerColors(): Promise<string[][]> {
+	return invoke<string[][]>('get_player_colors');
+}
+
 export async function getCurrentMod(): Promise<string> {
 	return invoke<string>('request_mod');
 }

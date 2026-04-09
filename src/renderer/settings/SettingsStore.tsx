@@ -32,6 +32,8 @@ const defaultSettings: ISettings = {
 	enableOverlay: true,
 	meetingOverlay: true,
 	aleLuduMode: false,
+	startMuted: false,
+	startDeafened: false,
 	localLobbySettings: {
 		maxDistance: 5.32,
 		visionHearing: false,

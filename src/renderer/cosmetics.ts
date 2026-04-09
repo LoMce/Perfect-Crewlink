@@ -2,8 +2,10 @@
 import redAliveimg from '../../static/images/avatar/placeholder.png'; // @ts-ignore
 import rainbowAliveimg from '../../static/images/avatar/rainbow-alive.png'; // @ts-ignore
 import rainbowDeadeimg from '../../static/images/avatar/rainbow-dead.png';
+import { invoke } from '@tauri-apps/api/core';
 
 import { ModsType } from '../common/Mods';
+import { DEFAULT_PLAYERCOLORS } from '../common/playerColors';
 export const redAlive = redAliveimg;
 
 export enum cosmeticType {
@@ -64,7 +66,7 @@ function getModHat(color: number, id = '', mod: ModsType, back = false) {
 	const multiColor = hatBase?.multi_color;
 	if (hat && hatBase) {
 		if (!multiColor) return `${HAT_COLLECTION_URL}${hatBase.mod}/${hat}`;
-		else return `generate:///${HAT_COLLECTION_URL}${hatBase.mod}/${hat}?color=${color}`;
+		else return `generate://localhost/${HAT_COLLECTION_URL}${hatBase.mod}/${hat}?color=${color}`;
 	}
 	return undefined;
 }
@@ -99,6 +101,57 @@ export function getHatDementions(id: string, mod: ModsType): HatDementions {
 }
 
 export const RainbowColorId = -99234;
+const generatedBaseCache = new Map<string, Promise<string>>();
+const resolvedBaseCache = new Map<string, string>();
+
+async function generateBaseAvatar(color: string, shadow: string, isAlive: boolean): Promise<string> {
+	return invoke<string>('generate_avatar_base', { color, shadow, isAlive });
+}
+
+function getBaseCacheKey(colorId: number, isAlive: boolean, playerColors: string[][]) {
+	if (colorId === RainbowColorId) {
+		return `${isAlive ? 'player' : 'ghost'}:rainbow`;
+	}
+	const [color, shadow] = playerColors[colorId] ?? DEFAULT_PLAYERCOLORS[0];
+	return `${isAlive ? 'player' : 'ghost'}:${color}:${shadow}`;
+}
+
+export function peekGeneratedBase(colorId: number, isAlive: boolean, playerColors: string[][] = DEFAULT_PLAYERCOLORS) {
+	if (colorId === RainbowColorId) {
+		return isAlive ? rainbowAliveimg : rainbowDeadeimg;
+	}
+	return resolvedBaseCache.get(getBaseCacheKey(colorId, isAlive, playerColors));
+}
+
+export function getGeneratedBase(
+	colorId: number,
+	isAlive: boolean,
+	playerColors: string[][] = DEFAULT_PLAYERCOLORS
+): Promise<string> {
+	if (colorId === RainbowColorId) {
+		return Promise.resolve(isAlive ? rainbowAliveimg : rainbowDeadeimg);
+	}
+
+	const [color, shadow] = playerColors[colorId] ?? DEFAULT_PLAYERCOLORS[0];
+	const cacheKey = `${isAlive ? 'player' : 'ghost'}:${color}:${shadow}`;
+	const resolved = resolvedBaseCache.get(cacheKey);
+	if (resolved) {
+		return Promise.resolve(resolved);
+	}
+
+	const cached = generatedBaseCache.get(cacheKey);
+	if (cached) {
+		return cached;
+	}
+
+	const promise = generateBaseAvatar(color, shadow, isAlive).then((dataUrl) => {
+		resolvedBaseCache.set(cacheKey, dataUrl);
+		return dataUrl;
+	});
+	generatedBaseCache.set(cacheKey, promise);
+	return promise;
+}
+
 export function getCosmetic(
 	color: number,
 	isAlive: boolean,
@@ -110,7 +163,7 @@ export function getCosmetic(
 		if (color == RainbowColorId) {
 			return isAlive ? rainbowAliveimg : rainbowDeadeimg;
 		}
-		return `static:///generated/${isAlive ? `player` : `ghost`}/${color}.png`;
+		return peekGeneratedBase(color, isAlive) ?? redAliveimg;
 	} else {
 		const modHat = getModHat(color, id, mod, type === cosmeticType.hat_back);
 		if (modHat) return modHat;

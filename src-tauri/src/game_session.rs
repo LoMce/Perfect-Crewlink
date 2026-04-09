@@ -138,13 +138,30 @@ pub struct SessionSnapshot {
     pub player_colors: Vec<[String; 2]>,
 }
 
+fn default_player_colors() -> Vec<[String; 2]> {
+    vec![
+        ["#C51111".to_string(), "#7A0838".to_string()],
+        ["#132ED1".to_string(), "#09158E".to_string()],
+        ["#117F2D".to_string(), "#0A4D2E".to_string()],
+        ["#ED54BA".to_string(), "#AB2BAD".to_string()],
+        ["#EF7D0D".to_string(), "#B33E15".to_string()],
+        ["#F5F557".to_string(), "#C38823".to_string()],
+        ["#3F474E".to_string(), "#1E1F26".to_string()],
+        ["#FFFFFF".to_string(), "#8394BF".to_string()],
+        ["#6B2FBB".to_string(), "#3B177C".to_string()],
+        ["#71491E".to_string(), "#5E2615".to_string()],
+        ["#38FEDC".to_string(), "#24A8BE".to_string()],
+        ["#50EF39".to_string(), "#15A742".to_string()],
+    ]
+}
+
 impl Default for SessionSnapshot {
     fn default() -> Self {
         Self {
             is_game_open: false,
             state: Some(AmongUsState::default()),
             current_mod: "NONE".to_string(),
-            player_colors: Vec::new(),
+            player_colors: default_player_colors(),
         }
     }
 }
@@ -559,7 +576,7 @@ impl GameSessionWorker {
                     snapshot.is_game_open = false;
                     snapshot.current_mod = "NONE".to_string();
                     snapshot.state = Some(AmongUsState::default());
-                    snapshot.player_colors.clear();
+                    snapshot.player_colors = default_player_colors();
                     let _ = self.app.emit(NOTIFY_GAME_OPENED, false);
                     debug_log("emitted NOTIFY_GAME_OPENED=false");
                 }
@@ -610,7 +627,7 @@ impl AmongUsReader {
             old_meeting_hud: false,
             colors_initialized: false,
             rainbow_color: -9999,
-            player_colors: Vec::new(),
+            player_colors: default_player_colors(),
         })
     }
 
@@ -746,7 +763,7 @@ impl AmongUsReader {
         self.old_meeting_hud = offsets.old_meeting_hud;
         self.offsets = offsets;
         self.colors_initialized = false;
-        self.player_colors.clear();
+        self.player_colors = default_player_colors();
         self.current_server.clear();
         self.game_code.clear();
         self.old_game_state = GAME_STATE_UNKNOWN;
@@ -760,20 +777,34 @@ impl AmongUsReader {
             debug_log(&format!("load_colors: {error}"));
         }
 
-        let meeting_hud = self
-            .read_pointer_from_module(&self.offsets.meeting_hud)
-            .map_err(|error| format!("meeting_hud: {error}"))?;
+        let meeting_hud = match self.read_pointer_from_module(&self.offsets.meeting_hud) {
+            Ok(value) => value,
+            Err(error) => {
+                debug_log(&format!("meeting_hud soft-fail: {error}"));
+                0
+            }
+        };
         let meeting_hud_cache_ptr = if meeting_hud == 0 {
             0
         } else {
-            self.read_pointer(meeting_hud, &self.offsets.object_cache_ptr)
-                .map_err(|error| format!("meeting_hud_cache_ptr: {error}"))?
+            match self.read_pointer(meeting_hud, &self.offsets.object_cache_ptr) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug_log(&format!("meeting_hud_cache_ptr soft-fail: {error}"));
+                    0
+                }
+            }
         };
         let meeting_hud_state = if meeting_hud_cache_ptr == 0 {
             4
         } else {
-            self.read_i32(meeting_hud, &self.offsets.meeting_hud_state)
-                .map_err(|error| format!("meeting_hud_state: {error}"))?
+            match self.read_i32(meeting_hud, &self.offsets.meeting_hud_state) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug_log(&format!("meeting_hud_state soft-fail: {error}"));
+                    4
+                }
+            }
         };
 
         let inner_net_client = self
@@ -816,15 +847,35 @@ impl AmongUsReader {
             }
         }
 
-        let all_players_ptr = self
-            .read_pointer_from_module(&self.offsets.all_players_ptr)
-            .map_err(|error| format!("all_players_ptr: {error}"))?;
-        let all_players = self
-            .read_pointer(all_players_ptr, &self.offsets.all_players)
-            .map_err(|error| format!("all_players: {error}"))?;
-        let player_count = self
-            .read_i32(all_players_ptr, &self.offsets.player_count)
-            .map_err(|error| format!("player_count: {error}"))?;
+        let all_players_ptr = match self.read_pointer_from_module(&self.offsets.all_players_ptr) {
+            Ok(value) => value,
+            Err(error) => {
+                debug_log(&format!("all_players_ptr soft-fail: {error}"));
+                0
+            }
+        };
+        let all_players = if all_players_ptr == 0 {
+            0
+        } else {
+            match self.read_pointer(all_players_ptr, &self.offsets.all_players) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug_log(&format!("all_players soft-fail: {error}"));
+                    0
+                }
+            }
+        };
+        let player_count = if all_players_ptr == 0 {
+            0
+        } else {
+            match self.read_i32(all_players_ptr, &self.offsets.player_count) {
+                Ok(value) => value,
+                Err(error) => {
+                    debug_log(&format!("player_count soft-fail: {error}"));
+                    0
+                }
+            }
+        };
 
         let host_id = self
             .read_u32_absolute(inner_net_client + self.offsets.inner_net_client.host_id as u64)

@@ -20,6 +20,8 @@ export interface ISettings {
 	enableOverlay: boolean;
 	meetingOverlay: boolean;
 	aleLuduMode: boolean;
+	startMuted: boolean;
+	startDeafened: boolean;
 
 	localLobbySettings: ILobbySettings;
 	ghostVolumeAsImpostor: number;

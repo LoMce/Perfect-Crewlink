@@ -7,6 +7,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@': path.resolve(__dirname, 'src'),
+			'simple-peer': path.resolve(__dirname, 'node_modules/simple-peer/simplepeer.min.js'),
 		},
 	},
 	server: {

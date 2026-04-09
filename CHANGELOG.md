@@ -1,75 +1,70 @@
-# Perfect Crewlink Historical Changelog
+# Changelog
 
-This file preserves legacy BetterCrewLink desktop changelog entries for reference. The current
-desktop app in this repository is Perfect Crewlink.
+## v1.0.0 - 2026-04-09
 
-## v2.8.6 - [2021-11-14]
+The first true `Perfect Crewlink` release.
 
-### Added
+Perfect Crewlink v1.0.0 establishes the standalone release line with a modern desktop stack,
+dedicated branding, cleaner packaging, and a large pass across overlay behavior, mod support,
+public lobbies, and day-to-day usability.
 
-- Added support for v2021.6.15.
-- Added support up to 300 colors (to support certain mods).
-- Small performance improvement (cached hats).
+### Rewrite and platform foundation
 
-### Changed
+- Finalized the desktop rewrite around **TypeScript + Vite**, **Tauri**, and **Rust**
+- Shipped dedicated `Perfect Crewlink` desktop branding, executable naming, installer naming,
+  bundle ID, and repository identity
+- Prepared the repo and release flow to build and publish Windows and Linux desktop artifacts
 
-- Changed the original hat system towards the mod hat system.
+### Overlay and in-game behavior
 
-### Fixed
+- Fixed overlay visibility so it only appears when attached to Among Us
+- Fixed taskbar and alt-tab issues caused by incorrect overlay window behavior
+- Added better foreground-window tracking so the overlay hides immediately outside the game
+- Added new overlay layout choices, including:
+  - top center without background
+  - top center with background
+- Changed default avatar overlay behavior so only talking players appear by default
+- Added an option to restore the old always-show-all-players overlay behavior
 
-- Fixed hats for the new Among Us version (v2021.6.15).
+### Mod support and visuals
 
-## v2.8.5 - [2021-11-10]
+- Added **AleLudu Mode** to align meeting overlays with the AleLudu meeting-card layout
+- Fixed modded player-color handling so expanded palettes no longer collapse avatars to red
+- Improved native-to-renderer palette sync for large color sets and modded lobbies
 
-### Added
+### Voice and lobby compatibility
 
-- Support for new Among Us version: v2021.11.9.2 (hats not supported yet will be soon).
-- Added support for the old version of Among Us (v2021.6.30s) so people with other mods can still play.
+- Fixed BetterCrewLink interoperability issues that left peers stuck in `TRYING`
+- Improved peer reuse and signal handling across mixed BetterCrewLink / Perfect Crewlink lobbies
+- Fixed renderer bundling so the browser-safe `simple-peer` path is used consistently
+- Made mute and deafen state persist across launches
 
-### Changed
+### Public lobby browser
 
-- The position of the ping have been changed.
-- The size of the ping have been decreased.
+- Reworked the lobby browser to show the lobby code directly instead of using a reveal button
+- Added the region label under every visible code
+- Added instant one-click copy for lobby codes
+- Preserved learned lobby codes when a tracked room flips from lobby state into in-game state
+- Made incompatible-mod filtering opt-out by default through `Ignore Incompatible Lobby Mods`
+- Added smarter retry behavior for false incompatible responses
+- Fixed the privacy path so `Show Lobby Code` now governs the lobby browser as well
 
-### Fixed
+### Stability fixes
 
-- Small performance fixes.
-- Fixed issue with reading some states which could of be the cause of loss of audio.
+- Hardened startup reads in the native Among Us session worker so early memory-read failures do not
+  kill the session immediately
+- Improved attach behavior after third-party edits regressed native session startup
+- Cleaned up temporary debug-only tracing after the fixes were verified
 
-## v2.8.0 - [2021-09-10]
+### Packaging
 
-### Added
+- Windows portable build: `perfectcrewlink.exe`
+- Windows installer: `Perfect.Crewlink_1.0.0_x64-setup.exe`
+- Linux AppImage: `Perfect.Crewlink_1.0.0_amd64.AppImage`
 
-- Added the version of BCL that you are using in the ping tracker.
-- Added Custom Launches.
-- Added Hungarian (not complete), Korean and Norwegian translations.
-- Added Support to Polus.gg and Submerged. (it's at the beginning, there might be some bugs)
-- Added Platform Detection for Linux.
-- Added Support for 15 players in the Overlay.
+### Notes
 
-### Changed
-
-- Decreased the Ping Tracker Size.
-- Reworked all of the Collider Maps & Doors.
-
-### Fixed
-
-- Fixed the Impostor Radio when it is disabled but it still works.
-- Fixed the bug of Hearing Everyone from Anywhere on the map on Disconnects.
-- Fixed the Doors not working with the Wall Blocks Audio enabled.
-
-### Removed
-
-- Removed the Extra Roles in Public Lobby Settings.
-
-## [v2.7.5](https://github.com/OhMyGuus/BetterCrewLink/releases/tag/v2.7.5) - [2021-07-07]
-
-### Added
-
-- Support for new version of Among Us.
-
-### Fixed
-
-- Fixes in the overlay (thanks to [JKohlman](https://github.com/JKohlman)).
-- Fixed Public Lobby List.
-- Other small fixes.
+- Perfect Crewlink remains compatible with the BetterCrewLink ecosystem while shipping as its own
+  standalone desktop client
+- Legacy BetterCrewLink history remains upstream; this changelog starts with the first true
+  Perfect Crewlink release
