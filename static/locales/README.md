@@ -2,7 +2,7 @@
 
 [![Crowdin][crowdin-shield]][crowdin-url]
 
-BetterCrewLink now officially supports other languages, that is, you can use BetterCrewLink without any problem of not understanding a part in English, but with that we need help with translations because nobody is born knowing everything languages.
+Perfect Crewlink now officially supports other languages, that is, you can use Perfect Crewlink without any problem of not understanding a part in English, but with that we need help with translations because nobody is born knowing everything languages.
 
 Any translations you make are greatly appreciated.
 
@@ -20,7 +20,7 @@ There are two methods.
 <details>
 <summary> In GitHub </summary>
 
-1. [Fork the Project](https://github.com/OhMyGuus/BetterCrewLink/fork).
+1. [Fork the Project](https://github.com/artriy/Perfect-Crewlink/fork).
 2. Create your Translation Branch.
 3. Go to static **->** locales **->** en **->** translation.json and Download this file.
 4. Open the translation.json with your text editor of preference.

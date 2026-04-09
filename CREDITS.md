@@ -1,6 +1,9 @@
 <!-- CONTRIBUTORS -->
 ## Contributors
 
+Perfect Crewlink is a rewritten desktop client. This file keeps credit for the original
+CrewLink and BetterCrewLink work it builds on, plus the contributors to this rewrite.
+
 PC: [![GitHub Contributors][contributors-shield]][contributors-url]\
 Mobile/Web: [![BetterCrewLink Mobile Contributors](https://img.shields.io/github/contributors/OhMyGuus/BetterCrewlink-mobile?label=Contributors&logo=GitHub)](https://github.com/OhMyGuus/BetterCrewlink-mobile/graphs/contributors)\
 Server: [![BetterCrewLink Server Contributors](https://img.shields.io/github/contributors/OhMyGuus/BetterCrewLink-server?label=Contributors&logo=GitHub)](https://github.com/OhMyGuus/BetterCrewLink-server/graphs/contributors)
@@ -20,11 +23,12 @@ Server: [![BetterCrewLink Server Contributors](https://img.shields.io/github/con
 * [7RST1](https://github.com/7RST1) for make Platform Detection for Linux on [BetterCrewLink](https://github.com/OhMyGuus/BetterCrewLink).
 * [MatadorProBr](https://github.com/MatadorProBr) for make this credits, better README.md, Wiki.
 
-<a href="https://github.com/OhMyGuus/BetterCrewLink/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=OhMyGuus/BetterCrewLink" />
+<a href="https://github.com/artriy/Perfect-Crewlink/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=artriy/Perfect-Crewlink" />
 </a>
 
-A big thanks for all those people who contributed and still contributing to keep this project stay alive, thank you so much for being part of this BetterCrewLink Community!
+A big thanks for everyone who helped keep this project alive, both in the original
+BetterCrewLink era and in the current Perfect Crewlink rewrite.
 
 <!-- TRANSLATORS -->
 ## Translators
@@ -65,7 +69,8 @@ A big thanks for all those people who contributed and still contributing to keep
 * [boboooka1](https://crowdin.com/profile/boboooka1) for translating [BetterCrewLink](https://github.com/OhMyGuus/BetterCrewLink) to Hungarian.
 * [vexot](https://crowdin.com/profile/vexot) for translating [BetterCrewLink](https://github.com/OhMyGuus/BetterCrewLink) to Spanish.
 
-A big thanks to all those who translated and are still translating to keep this project alive, thank you all so much for being part of the BetterCrewLink Community!
+A big thanks to everyone who translated the original project and helped carry that work into
+Perfect Crewlink.
 
 <!-- DONATORS -->
 ## Donators
@@ -87,16 +92,16 @@ A big thanks to all those who translated and are still translating to keep this 
 ## Resources
 
 * [CrewLink](https://github.com/ottomated) - The Official CrewLink App.
-* [Electron](https://www.electronjs.org/) - For making the app BetterCrewLink.
-* [memoryjs](https://github.com/TheGreatMcPain/memoryjs) - For making BetterCrewLink work with Linux.
+* [Electron](https://www.electronjs.org/) - For the legacy BetterCrewLink desktop app.
+* [memoryjs](https://github.com/TheGreatMcPain/memoryjs) - For making the legacy BetterCrewLink desktop app work with Linux.
 * [node-keyboard-watcher](https://github.com/OhMyGuus/node-keyboard-watcher) - For making it easy to make a Push To Talk, Push To Mute and Impostor Radio.
 * [electron-overlay-window](https://github.com/OhMyGuus/electron-overlay-window) - For making it easy to make Overlays.
 * [simple-peer](https://github.com/vrnagy/simple-peer) - For making it easy to make [WebRTC](https://webrtc.org/) for [Voice Servers](https://github.com/OhMyGuus/BetterCrewLink-server).
 
 and you that are reading this ❤️
 
-[contributors-shield]: https://img.shields.io/github/contributors/OhMyGuus/BetterCrewLink?label=Contributors&logo=GitHub
-[contributors-url]: https://github.com/OhMyGuus/BetterCrewLink/graphs/contributors
+[contributors-shield]: https://img.shields.io/github/contributors/artriy/Perfect-Crewlink?label=Contributors&logo=GitHub
+[contributors-url]: https://github.com/artriy/Perfect-Crewlink/graphs/contributors
 [translators-shield]: https://img.shields.io/badge/Translators-41-brightgreen
 [translators-url]: https://crwd.in/bettercrewlink
 [crowdin-shield]: https://badges.crowdin.net/bettercrewlink/localized.svg

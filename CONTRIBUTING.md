@@ -1,8 +1,8 @@
 # Contributing
 
-Perfect Crewlink is the repository for the rewritten **BetterCrewLink** desktop client. The app
-name stays BetterCrewLink; this repo tracks the TypeScript + Tauri + Rust rewrite and the ongoing
-compatibility and stability work around it.
+Perfect Crewlink is the repository for the rewritten desktop client. The app itself is now named
+**Perfect Crewlink**, while still building on the original BetterCrewLink feature set and the
+TypeScript + Tauri + Rust rewrite work around it.
 
 ## Prerequisites
 

@@ -1,46 +1,47 @@
 # Perfect Crewlink
 
 <p align="center">
-  <img src="static/images/logos/sizes/256-BCL-Logo-shadow.png" alt="BetterCrewLink logo" width="160">
+  <img src="static/images/logos/sizes/256-BCL-Logo-shadow.png" alt="Perfect Crewlink logo" width="160">
 </p>
 
 <p align="center">
-  <strong>The standalone repository for the rewritten BetterCrewLink desktop client.</strong>
+  <strong>A full desktop rewrite of BetterCrewLink built for a faster, cleaner, separate install.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/App-BetterCrewLink-BA68C8" alt="App: BetterCrewLink">
+  <img src="https://img.shields.io/badge/App-Perfect%20Crewlink-BA68C8" alt="App: Perfect Crewlink">
   <img src="https://img.shields.io/badge/Repo-Perfect%20Crewlink-1D1A23" alt="Repo: Perfect Crewlink">
   <img src="https://img.shields.io/badge/Frontend-TypeScript%20%2B%20Vite-3178C6?logo=typescript&logoColor=white" alt="TypeScript + Vite">
   <img src="https://img.shields.io/badge/Desktop-Tauri-24C8DB?logo=tauri&logoColor=white" alt="Tauri">
   <img src="https://img.shields.io/badge/Native-Rust-000000?logo=rust&logoColor=white" alt="Rust">
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D4?logo=windows11&logoColor=white" alt="Windows 10/11">
+  <img src="https://img.shields.io/badge/Linux-AppImage-6E40C9?logo=linux&logoColor=white" alt="Linux AppImage">
 </p>
 
-Perfect Crewlink keeps the shipped app name **BetterCrewLink**, but the desktop client in this
-repository is a complete rewrite of the original BetterCrewLink desktop app: **TypeScript + Vite**
-in the renderer, **Tauri** for the desktop shell, and **Rust** for native window, process, and
-overlay work.
+Perfect Crewlink is the shipped app name now. The desktop client in this repository is a complete
+rewrite of the original BetterCrewLink desktop app: **TypeScript + Vite** in the renderer,
+**Tauri** for the desktop shell, and **Rust** for native window, process, and overlay work.
 
 This repo exists because the old BetterCrewLink desktop path was carrying too much legacy weight.
 The current app is not a thin fork. It is a practical rewrite focused on faster startup, lower
 desktop overhead, better window behavior, cleaner overlay handling, easier iteration, and much
 stronger mod compatibility.
 
-## Why this rewrite matters
+## Why Perfect Crewlink
 
-- Faster, lighter desktop runtime than the legacy Electron-era client.
-- Better overlay lifecycle: fewer ghost windows, fewer white flashes, cleaner focus and alt-tab behavior.
-- Instant settings behavior: overlay and lobby settings now apply live instead of waiting for dialog close.
-- Better stability across startup, attach, settings, lobby browser, and shutdown flows.
-- Better mod support, including **AleLudu mode** for resized meeting cards.
-- Cleaner development workflow built around `npm`, Vite, Tauri, and Rust.
-- Release packaging for **Windows installers** and **Linux AppImage** builds.
+- Separate app identity so it can be installed alongside the original BetterCrewLink without
+  collisions in executable names, installer identity, bundle identifier, or local settings.
+- Faster, lighter desktop runtime than the old Electron-era path.
+- Cleaner overlay lifecycle with better focus handling, fewer ghost windows, and fewer startup artifacts.
+- Instant settings behavior so overlay and lobby options apply live while you edit them.
+- Stronger mod support, including **AleLudu mode** for resized meeting cards.
+- Modern build and release flow based on `npm`, Vite, Tauri, and Rust.
+- First-class packaging for **Windows installers** and **Linux AppImage** releases.
 
-## Highlights
+## What you get
 
 - Full desktop rewrite centered on **TypeScript + Tauri + Rust**
-- BetterCrewLink app branding preserved
+- Perfect Crewlink app branding, executable, installer, and storage identity
 - AleLudu compatibility toggle for meeting overlay positioning
 - Windows and Linux release support, including AppImage packaging
 - Public lobby browser with in-app access
@@ -49,9 +50,20 @@ stronger mod compatibility.
 - Better window management around focus, taskbar behavior, and shutdown
 - Repo layout and tooling that are ready to clone, install, and build immediately
 
+## Release highlights
+
+| Area | What changed |
+| --- | --- |
+| Branding | The app now ships as **Perfect Crewlink**, not BetterCrewLink |
+| Side-by-side install | Separate executable, installer name, bundle identifier, and local storage keys |
+| Overlay | Cleaner startup, focus, visibility, and settings behavior |
+| Public lobbies | Faster access, more reliable publishing, cleaner browser window |
+| Mod support | Includes **AleLudu mode** for custom meeting-card layouts |
+| Packaging | Windows installer plus Linux AppImage release assets |
+
 ## Legacy vs rewrite
 
-| Area | Legacy BetterCrewLink desktop | Perfect Crewlink repo |
+| Area | Legacy BetterCrewLink desktop | Perfect Crewlink |
 | --- | --- | --- |
 | Desktop shell | Older desktop stack | Tauri desktop shell |
 | Native integration | Harder to maintain | Rust-native window/process layer |
@@ -63,9 +75,9 @@ stronger mod compatibility.
 
 ## What ships here
 
-This repository builds the **BetterCrewLink** desktop app. The app name, UI identity, and bundled
-desktop client remain BetterCrewLink. `Perfect Crewlink` is the repository and distribution name for
-this maintained rewrite.
+This repository builds the **Perfect Crewlink** desktop app. It now has its own executable,
+installer, bundle identifier, and local storage keys so it can coexist with the original
+BetterCrewLink desktop app on the same system.
 
 ## Quick start
 
@@ -94,8 +106,8 @@ npm run tauri -- build
 
 Build outputs:
 
-- `src-tauri/target/release/bettercrewlink.exe`
-- `src-tauri/target/release/bundle/nsis/BetterCrewLink_3.1.4_x64-setup.exe`
+- `src-tauri/target/release/perfectcrewlink.exe`
+- `src-tauri/target/release/bundle/nsis/Perfect Crewlink_3.1.4_x64-setup.exe`
 - `src-tauri/target/release/bundle/appimage/*.AppImage`
 
 ## Development notes
@@ -119,7 +131,7 @@ npm run tauri -- build
 
 ## Compatibility focus
 
-This desktop rewrite is aimed at modern BetterCrewLink usage on Windows and includes the recent
+This desktop rewrite is aimed at modern proximity chat usage on Windows and includes the recent
 fixes for:
 
 - instant settings sync
@@ -140,7 +152,7 @@ request expectations.
 - Original CrewLink project: [ottomated/CrewLink](https://github.com/ottomated/CrewLink)
 
 Perfect Crewlink is inspired by the original BetterCrewLink repository structure and feature set,
-but this repo is organized around the rewritten Tauri desktop client you are using here.
+but it is now its own rewritten Tauri desktop client and install target.
 
 ## License
 

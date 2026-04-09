@@ -9,7 +9,8 @@ export enum pushToTalkOptions {
 
 type ChangeListener = (newValue: ISettings, oldValue: ISettings) => void;
 
-const STORAGE_KEY = 'bettercrewlink.settings';
+const STORAGE_KEY = 'perfectcrewlink.settings';
+const LEGACY_STORAGE_KEYS = ['bettercrewlink.settings'];
 
 const defaultSettings: ISettings = {
 	alwaysOnTop: false,
@@ -107,7 +108,10 @@ function readStoredSettings(): ISettings {
 	}
 
 	try {
-		const raw = window.localStorage.getItem(STORAGE_KEY);
+		const raw =
+			window.localStorage.getItem(STORAGE_KEY) ??
+			LEGACY_STORAGE_KEYS.map((key) => window.localStorage.getItem(key)).find(Boolean) ??
+			null;
 		if (!raw) {
 			return deepClone(defaultSettings);
 		}

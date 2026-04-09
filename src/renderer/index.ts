@@ -38,7 +38,7 @@ function renderBootstrapError(error: unknown) {
 		.join('&gt;');
 	root.innerHTML = `
 		<div style="padding:16px;font-family:Segoe UI,Arial,sans-serif;color:#111;background:#fff;white-space:pre-wrap;">
-			<h2 style="margin:0 0 12px;">BetterCrewLink failed to start</h2>
+			<h2 style="margin:0 0 12px;">Perfect Crewlink failed to start</h2>
 			<div>${escapedMessage}</div>
 		</div>
 	`;
