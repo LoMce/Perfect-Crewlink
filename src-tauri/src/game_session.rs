@@ -1911,14 +1911,57 @@ impl ProcessHandle {
 }
 
 #[cfg(not(windows))]
-struct ProcessInfo;
+struct ProcessInfo {
+    pid: u32,
+    path: PathBuf,
+    process: ProcessHandle,
+    game_assembly: ModuleInfo,
+}
 
 #[cfg(not(windows))]
 #[derive(Clone, Copy)]
-struct ModuleInfo;
+struct ModuleInfo {
+    base_address: u64,
+    size: usize,
+}
 
 #[cfg(not(windows))]
 struct ProcessHandle;
+
+#[cfg(not(windows))]
+impl ProcessHandle {
+    fn unsupported() -> String {
+        "Process memory access is only supported on Windows".to_string()
+    }
+
+    fn read_bytes(&self, _address: u64, _len: usize) -> Result<Vec<u8>, String> {
+        Err(Self::unsupported())
+    }
+
+    fn read_u8(&self, _address: u64) -> Result<u8, String> {
+        Err(Self::unsupported())
+    }
+
+    fn read_u16(&self, _address: u64) -> Result<u16, String> {
+        Err(Self::unsupported())
+    }
+
+    fn read_u32(&self, _address: u64) -> Result<u32, String> {
+        Err(Self::unsupported())
+    }
+
+    fn read_u64(&self, _address: u64) -> Result<u64, String> {
+        Err(Self::unsupported())
+    }
+
+    fn read_i32(&self, _address: u64) -> Result<i32, String> {
+        Err(Self::unsupported())
+    }
+
+    fn read_f32(&self, _address: u64) -> Result<f32, String> {
+        Err(Self::unsupported())
+    }
+}
 
 #[cfg(windows)]
 fn find_among_us_process(existing_pid: Option<u32>) -> Result<Option<ProcessInfo>, String> {
