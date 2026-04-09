@@ -56,7 +56,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": ["nsis", "appimage"],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
     "icon": [
       "icons/icon.ico",
       "icons/icon.png"
