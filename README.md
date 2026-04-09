@@ -22,6 +22,8 @@ Perfect Crewlink is a full desktop fork of the BetterCrewLink lineage, rebuilt a
 people want, then upgrades the desktop client around it: faster startup, lower overhead, sharper
 window handling, cleaner overlays, stronger mod support, and better day-to-day quality.
 
+`v1.0.0` is the first full release of Perfect Crewlink.
+
 ## Why Perfect Crewlink
 
 - **Full rewrite, lighter runtime**  

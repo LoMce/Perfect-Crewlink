@@ -4,13 +4,13 @@
 
 The first true `Perfect Crewlink` release.
 
-Perfect Crewlink v1.0.0 establishes the standalone release line with a modern desktop stack,
-dedicated branding, cleaner packaging, and a large pass across overlay behavior, mod support,
-public lobbies, and day-to-day usability.
+Perfect Crewlink v1.0.0 is the first full release of Perfect Crewlink, built with a modern desktop
+stack, dedicated branding, cleaner packaging, and a large pass across overlay behavior, mod
+support, public lobbies, and day-to-day usability.
 
-### Rewrite and platform foundation
+### Platform foundation
 
-- Finalized the desktop rewrite around **TypeScript + Vite**, **Tauri**, and **Rust**
+- Built the desktop client around **TypeScript + Vite**, **Tauri**, and **Rust**
 - Shipped dedicated `Perfect Crewlink` desktop branding, executable naming, installer naming,
   bundle ID, and repository identity
 - Prepared the repo and release flow to build and publish Windows and Linux desktop artifacts
@@ -66,5 +66,5 @@ public lobbies, and day-to-day usability.
 
 - Perfect Crewlink remains compatible with the BetterCrewLink ecosystem while shipping as its own
   standalone desktop client
-- Legacy BetterCrewLink history remains upstream; this changelog starts with the first true
-  Perfect Crewlink release
+- Legacy BetterCrewLink history remains upstream; the Perfect Crewlink changelog starts here at
+  `v1.0.0`
