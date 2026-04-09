@@ -1,13 +1,13 @@
 [package]
-name = "bettercrewlink"
+name = "perfectcrewlink"
 version = "3.1.4"
-description = "BetterCrewLink desktop client rewritten with Tauri and Rust"
+description = "Perfect Crewlink desktop client rewritten with Tauri and Rust"
 authors = ["LoMce"]
 license = "GPL-3.0-or-later"
 edition = "2021"
 
 [lib]
-name = "bettercrewlink_lib"
+name = "perfectcrewlink_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

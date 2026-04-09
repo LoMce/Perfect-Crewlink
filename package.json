@@ -1,9 +1,9 @@
 {
-  "name": "bettercrewlink",
+  "name": "perfect-crewlink",
   "version": "3.1.4",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "description": "BetterCrewLink desktop client rewritten with TypeScript, Tauri, and Rust",
+  "description": "Perfect Crewlink desktop client rewritten with TypeScript, Tauri, and Rust",
   "type": "module",
   "repository": {
     "type": "git",

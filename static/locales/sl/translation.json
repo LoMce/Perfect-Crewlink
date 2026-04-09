@@ -29,7 +29,7 @@
 				"enabled": "Čakalnica je javna",
 				"mods": "Modifikacije",
 				"language": "Jezik",
-				"enable_warning": "Vključitev tega bo prikazala čakalnico na javnem seznamu ostalim igralcem BetterCrewLink-a!",
+				"enable_warning": "Vključitev tega bo prikazala čakalnico na javnem seznamu ostalim igralcem Perfect Crewlink-a!",
 				"ban_warning": "Neprimerne besede so lahko razlog za ban."
 			}
 		},
@@ -66,7 +66,7 @@
 		},
 		"overlay": {
 			"title": "Prikaz govorca",
-			"always_on_top": "BetterCrewLink v ospredju",
+			"always_on_top": "Perfect Crewlink v ospredju",
 			"enabled": "Omogoči prikaz govorca",
 			"compact": "Kompakten prikaz govorca",
 			"meeting": "Prikaz govorca na sestankih",
@@ -110,7 +110,7 @@
 			"obs_overlay": "OBS Browser Overlay",
 			"obs_url": "OBS Browser Source URL",
 			"voice_server_comp": "GS združljivostni način",
-			"voice_server_comp_warning": "Priporočeno je, da samo spremenite glasovni strežnik na uradni bettercrewlink strežnik na naslovu https://bettercrewl.ink."
+			"voice_server_comp_warning": "Priporočeno je, da samo spremenite glasovni strežnik na uradni Perfect Crewlink strežnik na naslovu https://bettercrewl.ink."
 		},
 		"troubleshooting": {
 			"title": "Odpravljanje napak",

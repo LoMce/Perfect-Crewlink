@@ -24,12 +24,12 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: BetterCrewLink Windows Release Assets
+            artifact_name: Perfect Crewlink Windows Release Assets
             upload_glob: |
-              src-tauri/target/release/bettercrewlink.exe
+              src-tauri/target/release/perfectcrewlink.exe
               src-tauri/target/release/bundle/nsis/*.exe
           - os: ubuntu-22.04
-            artifact_name: BetterCrewLink Linux Release Assets
+            artifact_name: Perfect Crewlink Linux Release Assets
             upload_glob: src-tauri/target/release/bundle/appimage/*.AppImage
 
     steps:

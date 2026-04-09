@@ -1,9 +1,16 @@
 export const OVERLAY_STATE_KEYS = {
-	gameState: 'bettercrewlink.overlay.gameState',
-	voiceState: 'bettercrewlink.overlay.voiceState',
-	settings: 'bettercrewlink.overlay.settings',
-	playerColors: 'bettercrewlink.overlay.playerColors',
+	gameState: 'perfectcrewlink.overlay.gameState',
+	voiceState: 'perfectcrewlink.overlay.voiceState',
+	settings: 'perfectcrewlink.overlay.settings',
+	playerColors: 'perfectcrewlink.overlay.playerColors',
 } as const;
+
+const LEGACY_OVERLAY_STATE_KEYS: Record<string, string> = {
+	[OVERLAY_STATE_KEYS.gameState]: 'bettercrewlink.overlay.gameState',
+	[OVERLAY_STATE_KEYS.voiceState]: 'bettercrewlink.overlay.voiceState',
+	[OVERLAY_STATE_KEYS.settings]: 'bettercrewlink.overlay.settings',
+	[OVERLAY_STATE_KEYS.playerColors]: 'bettercrewlink.overlay.playerColors',
+};
 
 export function writeOverlayState<T>(key: string, value: T): void {
 	if (typeof window === 'undefined' || !window.localStorage) {
@@ -23,7 +30,7 @@ export function readOverlayState<T>(key: string): T | null {
 	}
 
 	try {
-		const rawValue = window.localStorage.getItem(key);
+		const rawValue = window.localStorage.getItem(key) ?? window.localStorage.getItem(LEGACY_OVERLAY_STATE_KEYS[key] ?? '');
 		return rawValue ? (JSON.parse(rawValue) as T) : null;
 	} catch {
 		return null;

@@ -122,7 +122,7 @@ const RawTitleBar: React.FC<TitleBarProps> = function ({ settingsOpen, setSettin
 	return (
 		<div className={classes.root}>
 			<span className={classes.title} style={{ marginLeft: 10 }}>
-				BetterCrewLink{appVersion}
+				Perfect Crewlink{appVersion}
 			</span>
 			<IconButton className={classes.button} style={{ left: 0 }} size="small" onClick={() => setSettingsOpen(!settingsOpen)}>
 				<SettingsIcon htmlColor="#777" />

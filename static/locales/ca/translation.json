@@ -29,8 +29,8 @@
 				"enabled": "The Lobby is Public",
 				"mods": "Mods",
 				"language": "Language",
-				"enable_warning": "Enabling this will make your lobby public to other BetterCrewLink users!",
-				"ban_warning": "Inappropriate text will result in a ban from BetterCrewLink."
+				"enable_warning": "Enabling this will make your lobby public to other Perfect Crewlink users!",
+				"ban_warning": "Inappropriate text will result in a ban from Perfect Crewlink."
 			}
 		},
 		"customplatforms": {
@@ -66,7 +66,7 @@
 		},
 		"overlay": {
 			"title": "Superposició",
-			"always_on_top": "BetterCrewLink on Top",
+			"always_on_top": "Perfect Crewlink on Top",
 			"enabled": "Activar Superposició",
 			"compact": "Superposició Compacta",
 			"meeting": "Superposició de Reunions",
@@ -110,7 +110,7 @@
 			"obs_overlay": "Superposició de Navegador de OBS",
 			"obs_url": "OBS Browser Source URL",
 			"voice_server_comp": "Mode de compatibilitat VS",
-			"voice_server_comp_warning": "Es recomana canviar el servidor de veu per un servidor de veu bettercrewlink https://bettercrewl.ink, per exemple."
+			"voice_server_comp_warning": "Es recomana canviar el servidor de veu per un servidor de veu Perfect Crewlink https://bettercrewl.ink, per exemple."
 		},
 		"troubleshooting": {
 			"title": "Resolució de problemes",

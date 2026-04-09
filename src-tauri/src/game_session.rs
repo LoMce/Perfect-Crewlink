@@ -15,13 +15,13 @@ use std::{
 use tauri::{AppHandle, Emitter};
 
 const OPEN_AS_ADMINISTRATOR_ERROR: &str =
-    "Error with checking the process:\nCouldn't connect to Among Us.\nPlease re-open BetterCrewLink as Administrator.";
+    "Error with checking the process:\nCouldn't connect to Among Us.\nPlease re-open Perfect Crewlink as Administrator.";
 const LOOKUP_FETCH_ERROR: &str =
     "Error with fetching offsets:\nPlease check your internet connection.";
 const OFFSETS_FETCH_ERROR: &str =
     "Error with fetching offsets:\nPlease check your internet connection.";
 const UNSUPPORTED_VERSION_ERROR: &str =
-    "Your version of Among Us is unsupported by BetterCrewLink.\n";
+    "Your version of Among Us is unsupported by Perfect Crewlink.\n";
 
 const NOTIFY_GAME_OPENED: &str = "NOTIFY_GAME_OPENED";
 const NOTIFY_GAME_STATE_CHANGED: &str = "NOTIFY_GAME_STATE_CHANGED";

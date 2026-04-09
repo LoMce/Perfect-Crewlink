@@ -1,6 +1,7 @@
-# BetterCrewLink Changelog
+# Perfect Crewlink Historical Changelog
 
-A changelog for BetterCrewLink in case people want to see changes from the new/old versions.
+This file preserves legacy BetterCrewLink desktop changelog entries for reference. The current
+desktop app in this repository is Perfect Crewlink.
 
 ## v2.8.6 - [2021-11-14]
 

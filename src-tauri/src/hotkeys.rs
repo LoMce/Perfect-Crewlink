@@ -247,7 +247,7 @@ fn start_hook_thread(context: Arc<HotkeyContext>) -> Result<(), String> {
     let _ = HOTKEY_CONTEXT.set(context);
 
     std::thread::Builder::new()
-        .name("bettercrewlink-hotkeys".to_string())
+        .name("perfectcrewlink-hotkeys".to_string())
         .spawn(move || unsafe {
             use windows::Win32::UI::WindowsAndMessaging::{
                 GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx, MSG, WH_KEYBOARD_LL, WH_MOUSE_LL,
