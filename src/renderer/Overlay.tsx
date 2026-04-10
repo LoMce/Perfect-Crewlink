@@ -60,10 +60,22 @@ function useWindowSize() {
 		const onResize = () => {
 			setWindowSize([window.innerWidth, window.innerHeight]);
 		};
+		const onVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				onResize();
+			}
+		};
+
 		window.addEventListener('resize', onResize);
+		window.addEventListener('focus', onResize);
+		document.addEventListener('visibilitychange', onVisibilityChange);
 		onResize();
 
-		return () => window.removeEventListener('resize', onResize);
+		return () => {
+			window.removeEventListener('resize', onResize);
+			window.removeEventListener('focus', onResize);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
 	}, []);
 	return windowSize;
 }
@@ -477,9 +489,6 @@ interface MeetingHudProps {
 
 const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerColors, aleLuduMode }: MeetingHudProps) => {
 	const [windowWidth, windowheight] = useWindowSize();
-	const [nowTick, setNowTick] = useState(() => Date.now());
-	const [stablePlayers, setStablePlayers] = useState<Record<number, StableOverlayPlayer>>({});
-	const previousLobbyCodeRef = useRef(gameState.lobbyCode);
 	const [width, height] = useMemo(() => {
 		if (gameState.oldMeetingHud) {
 			let hudWidth = 0,
@@ -491,7 +500,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 				hudWidth = windowWidth;
 				hudHeight = windowWidth * (1 / iPadRatio);
 			}
-			return [hudWidth, hudWidth];
+			return [hudWidth, hudHeight];
 		}
 
 		let resultW;
@@ -517,81 +526,9 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		aleLuduMode: !gameState.oldMeetingHud && aleLuduMode,
 	});
 
-	useEffect(() => {
-		const tickId = window.setInterval(() => {
-			setNowTick(Date.now());
-		}, 250);
-
-		return () => {
-			window.clearInterval(tickId);
-		};
-	}, []);
-
-	useEffect(() => {
-		if (previousLobbyCodeRef.current === gameState.lobbyCode) {
-			return;
-		}
-
-		previousLobbyCodeRef.current = gameState.lobbyCode;
-		setStablePlayers({});
-	}, [gameState.lobbyCode]);
-
-	useEffect(() => {
-		if (gameState.gameState === GameState.MENU || gameState.gameState === GameState.UNKNOWN) {
-			setStablePlayers({});
-			return;
-		}
-
-		setStablePlayers((old) => {
-			const next: Record<number, StableOverlayPlayer> = { ...old };
-			const liveClientIds = new Set<number>();
-
-			for (const player of gameState.players ?? []) {
-				liveClientIds.add(player.clientId);
-				next[player.clientId] = {
-					player,
-					firstSeenAt: old[player.clientId]?.firstSeenAt ?? nowTick,
-					lastSeenAt: nowTick,
-				};
-			}
-
-			for (const key of Object.keys(next)) {
-				const clientId = Number(key);
-				if (liveClientIds.has(clientId)) {
-					continue;
-				}
-
-				const slot = next[clientId];
-				const connection = voiceState.clientConnections[clientId];
-				const recentlyConnected =
-					Boolean(connection?.connected) ||
-					(Boolean(connection?.lastSeenAt) && nowTick - connection.lastSeenAt <= OVERLAY_ROSTER_GRACE_MS);
-				const recentlyTalking =
-					Boolean(voiceState.otherTalking[clientId]) ||
-					(slot.player.isLocal && voiceState.localTalking);
-
-				if (recentlyConnected || recentlyTalking || nowTick - slot.lastSeenAt <= OVERLAY_ROSTER_GRACE_MS) {
-					continue;
-				}
-
-				delete next[clientId];
-			}
-
-			return next;
-		});
-	}, [
-		gameState.gameState,
-		gameState.players,
-		nowTick,
-		voiceState.clientConnections,
-		voiceState.localTalking,
-		voiceState.otherTalking,
-	]);
-
 	const players = useMemo(() => {
-		const sourcePlayers = Object.values(stablePlayers).map((entry) => entry.player);
-		if (sourcePlayers.length === 0) return null;
-		return sourcePlayers.slice().sort((a, b) => {
+		if (!gameState.players || gameState.players.length === 0) return null;
+		return gameState.players.slice().sort((a, b) => {
 			if ((a.disconnected || a.isDead) && (b.disconnected || b.isDead)) {
 				return a.id - b.id;
 			} else if (a.disconnected || a.isDead) {
@@ -601,7 +538,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 			}
 			return a.id - b.id;
 		});
-	}, [stablePlayers]);
+	}, [gameState.players]);
 	if (!players || gameState.gameState !== GameState.DISCUSSION) return null;
 
 	const overlays = players.map((player) => {
