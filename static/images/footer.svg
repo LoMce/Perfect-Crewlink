@@ -1,0 +1,13 @@
+<svg width="900" height="50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 50">
+  <defs>
+    <linearGradient id="footGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0B0E1A"/>
+      <stop offset="30%" stop-color="#C51111" stop-opacity="0.3"/>
+      <stop offset="70%" stop-color="#24C8DB" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0B0E1A"/>
+    </linearGradient>
+  </defs>
+  <path d="M0,0 L0,25 Q225,50 450,25 Q675,0 900,25 L900,0 Z" fill="url(#footGrad)" opacity="0.4">
+    <animate attributeName="d" values="M0,0 L0,25 Q225,50 450,25 Q675,0 900,25 L900,0 Z;M0,0 L0,25 Q225,0 450,25 Q675,50 900,25 L900,0 Z;M0,0 L0,25 Q225,50 450,25 Q675,0 900,25 L900,0 Z" dur="10s" repeatCount="indefinite"/>
+  </path>
+</svg>

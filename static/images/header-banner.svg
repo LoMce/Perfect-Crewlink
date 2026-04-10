@@ -1,0 +1,94 @@
+<svg width="900" height="280" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0E1A"/>
+      <stop offset="50%" stop-color="#141833">
+        <animate attributeName="stop-color" values="#141833;#1a1f45;#141833" dur="10s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#0B0E1A"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C51111">
+        <animate attributeName="stop-color" values="#C51111;#ff4444;#C51111" dur="6s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="50%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#24C8DB">
+        <animate attributeName="stop-color" values="#24C8DB;#4de8f5;#24C8DB" dur="6s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="star" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Space background -->
+  <rect width="900" height="280" fill="url(#bg)" rx="10"/>
+
+  <!-- Twinkling stars -->
+  <g>
+    <circle cx="72" cy="35" r="1.2" fill="white" opacity="0.7"><animate attributeName="opacity" values="0.7;0.2;0.7" dur="3s" repeatCount="indefinite"/></circle>
+    <circle cx="180" cy="68" r="0.8" fill="white" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="4.2s" repeatCount="indefinite"/></circle>
+    <circle cx="295" cy="25" r="1" fill="white" opacity="0.6"><animate attributeName="opacity" values="0.6;0.15;0.6" dur="2.8s" repeatCount="indefinite"/></circle>
+    <circle cx="420" cy="52" r="0.7" fill="white" opacity="0.4"><animate attributeName="opacity" values="0.4;0.1;0.4" dur="5s" repeatCount="indefinite"/></circle>
+    <circle cx="530" cy="30" r="1.1" fill="white" opacity="0.8"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="3.5s" repeatCount="indefinite"/></circle>
+    <circle cx="640" cy="60" r="0.9" fill="white" opacity="0.5"><animate attributeName="opacity" values="0.5;0.15;0.5" dur="4s" repeatCount="indefinite"/></circle>
+    <circle cx="750" cy="22" r="1.3" fill="white" opacity="0.6"><animate attributeName="opacity" values="0.6;0.1;0.6" dur="3.2s" repeatCount="indefinite"/></circle>
+    <circle cx="830" cy="48" r="0.8" fill="white" opacity="0.45"><animate attributeName="opacity" values="0.45;0.1;0.45" dur="4.7s" repeatCount="indefinite"/></circle>
+    <circle cx="120" cy="245" r="0.9" fill="white" opacity="0.5"><animate attributeName="opacity" values="0.5;0.1;0.5" dur="3.8s" repeatCount="indefinite"/></circle>
+    <circle cx="380" cy="260" r="1" fill="white" opacity="0.6"><animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.5s" repeatCount="indefinite"/></circle>
+    <circle cx="590" cy="250" r="0.7" fill="white" opacity="0.4"><animate attributeName="opacity" values="0.4;0.05;0.4" dur="5.5s" repeatCount="indefinite"/></circle>
+    <circle cx="780" cy="240" r="1.1" fill="white" opacity="0.55"><animate attributeName="opacity" values="0.55;0.1;0.55" dur="3.1s" repeatCount="indefinite"/></circle>
+    <circle cx="50" cy="140" r="0.6" fill="white" opacity="0.3"><animate attributeName="opacity" values="0.3;0.05;0.3" dur="6s" repeatCount="indefinite"/></circle>
+    <circle cx="860" cy="130" r="0.8" fill="white" opacity="0.4"><animate attributeName="opacity" values="0.4;0.08;0.4" dur="4.5s" repeatCount="indefinite"/></circle>
+  </g>
+
+  <!-- Ambient glow orbs -->
+  <circle cx="130" cy="100" r="60" fill="#C51111" opacity="0.06">
+    <animate attributeName="r" values="60;70;60" dur="8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.06;0.1;0.06" dur="8s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="770" cy="180" r="50" fill="#24C8DB" opacity="0.05">
+    <animate attributeName="r" values="50;62;50" dur="9s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.05;0.09;0.05" dur="9s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Title -->
+  <text x="450" y="105" text-anchor="middle" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#titleGrad)" filter="url(#glow)">
+    Perfect Crewlink
+  </text>
+
+  <!-- Tagline -->
+  <text x="450" y="140" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="16" fill="#8892b0" filter="url(#softglow)">
+    Among Us proximity chat, rebuilt from the ground up
+  </text>
+
+  <!-- Feature pills -->
+  <g transform="translate(450, 185)" text-anchor="middle">
+    <rect x="-360" y="-15" width="155" height="30" rx="15" fill="rgba(197,17,17,0.15)" stroke="#C51111" stroke-width="1"/>
+    <text x="-282" y="5" font-family="'Segoe UI', monospace" font-size="12" fill="#ff6b6b">Tauri + Rust</text>
+
+    <rect x="-175" y="-15" width="155" height="30" rx="15" fill="rgba(36,200,219,0.12)" stroke="#24C8DB" stroke-width="1"/>
+    <text x="-97" y="5" font-family="'Segoe UI', monospace" font-size="12" fill="#4de8f5">Clean Overlays</text>
+
+    <rect x="10" y="-15" width="155" height="30" rx="15" fill="rgba(46,213,115,0.12)" stroke="#2ed573" stroke-width="1"/>
+    <text x="87" y="5" font-family="'Segoe UI', monospace" font-size="12" fill="#7bed9f">Mod Support</text>
+
+    <rect x="195" y="-15" width="165" height="30" rx="15" fill="rgba(255,165,2,0.12)" stroke="#ffa502" stroke-width="1"/>
+    <text x="277" y="5" font-family="'Segoe UI', monospace" font-size="12" fill="#ffc048">Stream Ready</text>
+  </g>
+
+  <!-- Version pill -->
+  <rect x="385" y="220" width="130" height="26" rx="13" fill="rgba(255,255,255,0.05)" stroke="#2a2f4e" stroke-width="1">
+    <animate attributeName="stroke" values="#2a2f4e;#C51111;#24C8DB;#2a2f4e" dur="8s" repeatCount="indefinite"/>
+  </rect>
+  <text x="450" y="238" text-anchor="middle" font-family="monospace" font-size="11" fill="#5a6080">v1.0.0</text>
+</svg>
