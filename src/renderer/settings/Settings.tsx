@@ -1271,7 +1271,7 @@ const Settings: React.FC<SettingsProps> = function ({ t, open, onClose }: Settin
 								onChange={(_, checked: boolean) => setSettings('aleLuduMode', checked)}
 								control={<Checkbox />}
 							/>
-							{settings.aleLuduMode && (
+							{settings.aleLuduMode && settings.debugMode && (
 								<AleLuduTuningPanel settings={settings} setSettings={setSettings} />
 							)}
 							<TextField
@@ -1488,6 +1488,17 @@ const Settings: React.FC<SettingsProps> = function ({ t, open, onClose }: Settin
 							{t('settings.troubleshooting.restore')}
 						</Button>
 					</DisabledTooltip>
+				</div>
+				<Divider />
+				<Typography variant="h6">Debug</Typography>
+				<div>
+					<FormControlLabel
+						className={classes.formLabel}
+						label="Debug mode (shows AleLudu calibration panel when AleLudu mode is on)"
+						checked={settings.debugMode}
+						onChange={(_, checked: boolean) => setSettings('debugMode', checked)}
+						control={<Checkbox />}
+					/>
 				</div>
 				<Alert className={classes.alert} severity="info" style={{ display: unsaved ? undefined : 'none' }}>
 					{t('buttons.exit')}

@@ -165,6 +165,7 @@ export default class GameReader {
 			this.gameAssembly !== null &&
 			this.offsets !== undefined
 		) {
+			try {
 			this.loadColors();
 
 			let state = GameState.UNKNOWN;
@@ -412,6 +413,23 @@ export default class GameReader {
 			}
 			this.lastState = newState;
 			this.oldGameState = state;
+			} catch (e) {
+				// Among Us quit or became unreadable while we were mid-loop — force
+				// detach instead of letting the exception bubble up through frame()
+				// in hook.ts as an unhandled rejection, which would freeze the loop
+				// and keep the renderer stuck on the voice screen forever. Flipping
+				// amongUs to null + resetting checkProcessDelay makes the next tick
+				// immediately re-check for the process; firing NOTIFY_GAME_OPENED
+				// with false flips the renderer back to "Waiting for Among Us" now
+				// instead of waiting up to 6s for the scheduled process check.
+				this.amongUs = null;
+				this.checkProcessDelay = 0;
+				try {
+					this.sendIPC(IpcRendererMessages.NOTIFY_GAME_OPENED, false);
+				} catch (_) {
+					/* renderer gone — nothing to notify */
+				}
+			}
 		}
 		return null;
 	}
