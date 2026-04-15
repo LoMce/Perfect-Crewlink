@@ -72,6 +72,7 @@ const defaultSettings: ISettings = {
 	enableOverlay: true,
 	meetingOverlay: true,
 	aleLuduMode: false,
+	debugMode: false,
 	startMuted: false,
 	startDeafened: false,
 	localLobbySettings: {
