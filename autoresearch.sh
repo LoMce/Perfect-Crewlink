@@ -41,6 +41,8 @@ check('talking_highlight_uses_recent_audio_guard', /REMOTE_AUDIO_TALKING_GRACE_M
 check('overlay_visibilitychange_refreshes_when_hidden', !/document\.visibilityState === 'visible'/.test(overlay));
 check('meeting_roster_growth_appends_without_reshuffle', /appendMissingMeetingPlayers/.test(overlay));
 check('meeting_missing_players_render_placeholders', /meetingPlaceholder/.test(overlay) && /player: Player \| null/.test(overlay));
+check('talking_vad_requires_audio_state', !/!remoteAudioState/.test(voice.match(/const serverVadTalking[\s\S]*?\);/)?.[0] ?? ''));
+check('talking_clears_when_audio_missing', /else if \(tempTalking\[player\.clientId\]\)/.test(voice));
 
 console.log(`METRIC static_bug_checks=${bugScore}`);
 NODE
@@ -110,6 +112,8 @@ const checks = [
   !/document\.visibilityState === 'visible'/.test(overlay),
   /appendMissingMeetingPlayers/.test(overlay),
   /meetingPlaceholder/.test(overlay) && /player: Player \| null/.test(overlay),
+  !/!remoteAudioState/.test(voice.match(/const serverVadTalking[\s\S]*?\);/)?.[0] ?? ''),
+  /else if \(tempTalking\[player\.clientId\]\)/.test(voice),
 ];
 console.log(checks.filter((ok) => !ok).length);
 NODE
