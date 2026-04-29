@@ -1442,6 +1442,8 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 					socket.emit('id', playerId, clientId);
 					socket.emit('join', lobbyCode, playerId, clientId, isHost);
 					currentLobby = lobbyCode;
+				} else if (currentLobby === lobbyCode && playerId > 0 && clientId > 0) {
+					socket.emit('id', playerId, clientId);
 				}
 			};
 
@@ -1768,7 +1770,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 			connect.connect(gameState?.lobbyCode ?? 'MENU', myPlayer?.id ?? 0, gameState.clientId, resolvedIsHost);
 			updateLobby();
 		}
-	}, [connect?.connect, gameState?.lobbyCode, connected, resolvedIsHost]);
+	}, [connect?.connect, gameState?.lobbyCode, gameState.clientId, myPlayer?.id, connected, resolvedIsHost]);
 
 	useEffect(() => {
 		if (myPlayer?.shiftedColor != -1) {
