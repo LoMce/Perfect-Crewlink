@@ -855,6 +855,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 			if (clientId !== undefined && !options?.preserveClientState) {
 				markClientDisconnected(clientId, peer);
 			}
+			disconnectAudioElement(peer);
 			return;
 		}
 		const nextConnections = { ...peerConnectionsRef.current };
