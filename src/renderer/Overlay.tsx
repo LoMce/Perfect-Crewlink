@@ -647,6 +647,12 @@ interface MeetingHudProps {
 	tuning: AleLuduTuning;
 }
 
+interface MeetingOverlaySlot {
+	key: string;
+	slotIndex: number;
+	player: Player | null;
+}
+
 const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerColors, aleLuduMode, tuning }: MeetingHudProps) => {
 	const [windowWidth, windowheight] = useWindowSize();
 	const meetingHudRef = useRef<HTMLDivElement | null>(null);
@@ -775,6 +781,26 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		}
 		return map;
 	})();
+	const overlaySlots: MeetingOverlaySlot[] = (() => {
+		const order = frozenMeetingOrderRef.current;
+		if (aleLuduColumns > 0 || !order) {
+			return renderPlayers.map((player, index) => ({
+				key: `player-${player.id}`,
+				player,
+				slotIndex: frozenCardIndexById.get(player.id) ?? index,
+			}));
+		}
+
+		const playerById = new Map(renderPlayers.map((player) => [player.id, player]));
+		return order.map((id, index) => {
+			const player = playerById.get(id) ?? null;
+			return {
+				key: player ? `player-${player.id}` : `meetingPlaceholder-${id}-${index}`,
+				player,
+				slotIndex: index,
+			};
+		});
+	})();
 	const canRenderMeetingHud = gameState.gameState === GameState.DISCUSSION && renderPlayers.length > 0;
 	const aleLuduSlotCount = frozenMeetingOrderRef.current?.length ?? renderPlayers.length;
 	const aleLuduRows = aleLuduColumns > 0 ? Math.max(1, Math.ceil(aleLuduSlotCount / aleLuduColumns)) : 0;
@@ -860,15 +886,24 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		  })
 		: null;
 
-	const overlays = renderPlayers.map((player, index) => {
+	const overlays = overlaySlots.map(({ player, slotIndex, key }) => {
+		if (!player) {
+			return (
+				<div
+					key={key}
+					className={classes.playerContainer}
+					style={{ opacity: 0, pointerEvents: 'none' }}
+				/>
+			);
+		}
+
 		const color = playerColors[player.colorId] ? playerColors[player.colorId][0] : '#C51111';
-		const cardIndex = frozenCardIndexById.get(player.id) ?? index;
 		const aleLuduCardStyle =
-			!gameState.oldMeetingHud && aleLuduMode ? getAleLuduCardStyle(cardIndex, tuning) : undefined;
+			!gameState.oldMeetingHud && aleLuduMode ? getAleLuduCardStyle(slotIndex, tuning) : undefined;
 
 		return (
 			<div
-				key={player.id}
+				key={key}
 				className={classes.playerContainer}
 				ref={(element) => {
 					overlayRefs.current[player.id] = element;
