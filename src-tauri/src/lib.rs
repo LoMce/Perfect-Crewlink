@@ -293,7 +293,6 @@ fn sync_overlay_bounds(window: &WebviewWindow) -> Result<(), String> {
 struct AmongUsWindowState {
     position: PhysicalPosition<i32>,
     size: PhysicalSize<u32>,
-    is_foreground: bool,
     is_minimized: bool,
 }
 
@@ -302,12 +301,11 @@ fn find_among_us_window_state() -> Option<AmongUsWindowState> {
     use windows::core::BOOL;
     use windows::Win32::Foundation::{HWND, LPARAM, RECT};
     use windows::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetForegroundWindow, GetWindowRect, GetWindowTextLengthW, GetWindowTextW,
-        IsIconic, IsWindowVisible,
+        EnumWindows, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, IsIconic,
+        IsWindowVisible,
     };
 
     struct SearchResult {
-        foreground: HWND,
         state: Option<AmongUsWindowState>,
     }
 
@@ -347,16 +345,12 @@ fn find_among_us_window_state() -> Option<AmongUsWindowState> {
         result.state = Some(AmongUsWindowState {
             position: PhysicalPosition::new(rect.left, rect.top),
             size: PhysicalSize::new(width, height),
-            is_foreground: hwnd == result.foreground,
             is_minimized: IsIconic(hwnd).as_bool(),
         });
         BOOL(0)
     }
 
-    let mut result = SearchResult {
-        foreground: unsafe { GetForegroundWindow() },
-        state: None,
-    };
+    let mut result = SearchResult { state: None };
     unsafe {
         let _ = EnumWindows(
             Some(enum_windows_proc),
