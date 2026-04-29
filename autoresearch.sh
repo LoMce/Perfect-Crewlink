@@ -28,6 +28,7 @@ function check(name, ok) {
 check('overlay_visible_when_among_us_not_foreground', !/!\s*state\.is_foreground/.test(lib));
 check('meeting_order_frozen_for_all_huds', /frozenMeetingOrderRef/.test(overlay));
 check('meeting_slot_count_uses_frozen_slots', /aleLuduSlotCount/.test(overlay));
+check('meeting_freeze_allows_initial_roster_growth', /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay));
 check('rejoin_uses_player_id_not_client_id', !/connect\.connect\(gameState\.lobbyCode,\s*myPlayer\.clientId/.test(voice));
 check('spatial_audio_uses_top_down_axes', /setTopDownPanPosition/.test(voice) && !/pan\.positionY\.setValueAtTime\(panPos\[1\]/.test(voice));
 check('stale_vad_cannot_overwrite_socket_mapping', /isStaleClientSocketUpdate/.test(voice));
@@ -59,6 +60,7 @@ const checks = [
   !/!\s*state\.is_foreground/.test(lib),
   /frozenMeetingOrderRef/.test(overlay),
   /aleLuduSlotCount/.test(overlay),
+  /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay),
   !/connect\.connect\(gameState\.lobbyCode,\s*myPlayer\.clientId/.test(voice),
   /setTopDownPanPosition/.test(voice) && !/pan\.positionY\.setValueAtTime\(panPos\[1\]/.test(voice),
   /isStaleClientSocketUpdate/.test(voice),
