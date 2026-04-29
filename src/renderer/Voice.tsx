@@ -617,14 +617,18 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		let isOnCamera = state.currentCamera !== CameraLocation.NONE;
 		if (!skipDistanceCheck && Math.sqrt(panPos[0] * panPos[0] + panPos[1] * panPos[1]) > maxdistance) {
 			if (lobbySettings.hearThroughCameras && state.gameState === GameState.TASKS) {
+				const cameras = AmongUsMaps[state.map]?.cameras ?? {};
 				if (state.currentCamera !== CameraLocation.NONE && state.currentCamera !== CameraLocation.Skeld) {
-					const camerapos = AmongUsMaps[state.map].cameras[state.currentCamera];
+					const camerapos = cameras[state.currentCamera];
+					if (!camerapos) {
+						return 0;
+					}
 					panPos = [other.x - camerapos.x, other.y - camerapos.y];
 					console.log('camerapos: ', camerapos);
 				} else if (state.currentCamera === CameraLocation.Skeld) {
 					let distance = 999;
 					let camerapos = { x: 999, y: 999 };
-					for (const camera of Object.values(AmongUsMaps[state.map].cameras)) {
+					for (const camera of Object.values(cameras)) {
 						const cameraDist = Math.sqrt(Math.pow(other.x - camera.x, 2) + Math.pow(other.y - camera.y, 2));
 						if (distance > cameraDist) {
 							distance = cameraDist;
