@@ -51,6 +51,20 @@ else
 	typecheck_fail=0
 fi
 
+rust_log="${TMPDIR:-.}/perfectcrewlink-cargo-check.log"
+set +e
+cargo check --manifest-path src-tauri/Cargo.toml --quiet >"$rust_log" 2>&1
+rust_status=$?
+set -e
+if [[ "$rust_status" -ne 0 ]]; then
+	echo "RUST_CHECK_FAIL"
+	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$rust_log"
+	rust_check_fail=1
+else
+	echo "RUST_CHECK_PASS"
+	rust_check_fail=0
+fi
+
 static_bug_checks=$(
 	node <<'NODE'
 const fs = require('fs');
@@ -71,6 +85,7 @@ console.log(checks.filter((ok) => !ok).length);
 NODE
 )
 
-bug_score=$((static_bug_checks + typecheck_fail * 10))
+bug_score=$((static_bug_checks + typecheck_fail * 10 + rust_check_fail * 10))
 echo "METRIC typecheck_fail=$typecheck_fail"
+echo "METRIC rust_check_fail=$rust_check_fail"
 echo "METRIC bug_score=$bug_score"
