@@ -10,7 +10,7 @@ use std::sync::{
     Arc,
 };
 use std::time::Duration;
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow, WindowEvent};
+use tauri::{AppHandle, Manager, PhysicalSize, State, WebviewWindow, WindowEvent};
 
 const OFFSETS_BASE_URL: &str = "https://raw.githubusercontent.com/OhMyGuus/BetterCrewlink-Offsets/main";
 const OFFSETS_FALLBACK_URL: &str = "https://cdn.jsdelivr.net/gh/OhMyGuus/BetterCrewlink-Offsets@main";
@@ -291,7 +291,7 @@ fn sync_overlay_bounds(window: &WebviewWindow) -> Result<(), String> {
 #[cfg(windows)]
 #[derive(Clone, Copy)]
 struct AmongUsWindowState {
-    position: PhysicalPosition<i32>,
+    hwnd: windows::Win32::Foundation::HWND,
     size: PhysicalSize<u32>,
     is_minimized: bool,
 }
@@ -301,7 +301,7 @@ fn find_among_us_window_state() -> Option<AmongUsWindowState> {
     use windows::core::BOOL;
     use windows::Win32::Foundation::{HWND, LPARAM, RECT};
     use windows::Win32::UI::WindowsAndMessaging::{
-        EnumWindows, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, IsIconic,
+        EnumWindows, GetClientRect, GetWindowTextLengthW, GetWindowTextW, IsIconic,
         IsWindowVisible,
     };
 
@@ -331,7 +331,7 @@ fn find_among_us_window_state() -> Option<AmongUsWindowState> {
         }
 
         let mut rect = RECT::default();
-        if GetWindowRect(hwnd, &mut rect).is_err() {
+        if GetClientRect(hwnd, &mut rect).is_err() {
             return BOOL(1);
         }
 
@@ -343,7 +343,7 @@ fn find_among_us_window_state() -> Option<AmongUsWindowState> {
 
         let result = unsafe { &mut *(lparam.0 as *mut SearchResult) };
         result.state = Some(AmongUsWindowState {
-            position: PhysicalPosition::new(rect.left, rect.top),
+            hwnd,
             size: PhysicalSize::new(width, height),
             is_minimized: IsIconic(hwnd).as_bool(),
         });
@@ -361,12 +361,62 @@ fn find_among_us_window_state() -> Option<AmongUsWindowState> {
     result.state
 }
 
+#[cfg(windows)]
+fn set_overlay_child_styles(window: &WebviewWindow, parent_hwnd: Option<windows::Win32::Foundation::HWND>, size: Option<PhysicalSize<u32>>) -> Result<(), String> {
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetWindowLongPtrW, SetParent, SetWindowLongPtrW, SetWindowPos, GWL_STYLE,
+        SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOZORDER, WS_CHILD, WS_POPUP, WS_VISIBLE,
+    };
+
+    let overlay_hwnd = window.hwnd().map_err(|error| error.to_string())?;
+    unsafe {
+        SetParent(overlay_hwnd, parent_hwnd).map_err(|error| error.to_string())?;
+        let style = GetWindowLongPtrW(overlay_hwnd, GWL_STYLE);
+        let mut next_style = style | WS_VISIBLE.0 as isize;
+        if parent_hwnd.is_some() {
+            next_style |= WS_CHILD.0 as isize;
+            next_style &= !(WS_POPUP.0 as isize);
+        } else {
+            next_style |= WS_POPUP.0 as isize;
+            next_style &= !(WS_CHILD.0 as isize);
+        }
+        SetWindowLongPtrW(overlay_hwnd, GWL_STYLE, next_style);
+
+        if let Some(size) = size {
+            SetWindowPos(
+                overlay_hwnd,
+                None,
+                0,
+                0,
+                size.width as i32,
+                size.height as i32,
+                SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+            )
+            .map_err(|error| error.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn embed_overlay_window(window: &WebviewWindow, state: AmongUsWindowState) -> Result<(), String> {
+    set_overlay_child_styles(window, Some(state.hwnd), Some(state.size))
+}
+
+#[cfg(windows)]
+fn detach_overlay_window(window: &WebviewWindow) -> Result<(), String> {
+    set_overlay_child_styles(window, None, None)
+}
+
 fn refresh_overlay_window(app: &AppHandle, enabled: bool) -> Result<(), String> {
     let window = app
         .get_webview_window("overlay")
         .ok_or_else(|| "Window not found: overlay".to_string())?;
 
     if !enabled {
+        #[cfg(windows)]
+        let _ = detach_overlay_window(&window);
         return window.hide().map_err(|error| error.to_string());
     }
 
@@ -375,18 +425,17 @@ fn refresh_overlay_window(app: &AppHandle, enabled: bool) -> Result<(), String> 
     #[cfg(windows)]
     {
         let Some(state) = find_among_us_window_state() else {
+            let _ = detach_overlay_window(&window);
             return window.hide().map_err(|error| error.to_string());
         };
 
         if state.is_minimized {
+            let _ = detach_overlay_window(&window);
             return window.hide().map_err(|error| error.to_string());
         }
 
         let _ = window.set_fullscreen(false);
-        window
-            .set_position(state.position)
-            .map_err(|error| error.to_string())?;
-        window.set_size(state.size).map_err(|error| error.to_string())?;
+        embed_overlay_window(&window, state)?;
         return window.show().map_err(|error| error.to_string());
     }
 
