@@ -224,6 +224,24 @@ function truncateName(name: string, maxLength = 14): string {
 	return `${name.slice(0, maxLength - 1)}…`;
 }
 
+function sortedMeetingPlayerIds(players: Player[]): number[] {
+	return players
+		.map((player, index) => ({ player, index }))
+		.sort((a, b) => {
+			const aDead = a.player.isDead ? 1 : 0;
+			const bDead = b.player.isDead ? 1 : 0;
+			if (aDead !== bDead) return aDead - bDead;
+			return a.index - b.index;
+		})
+		.map((entry) => entry.player.id);
+}
+
+function appendMissingMeetingPlayers(frozenIds: number[], players: Player[]): number[] {
+	const seen = new Set(frozenIds);
+	const missingIds = sortedMeetingPlayerIds(players).filter((id) => !seen.has(id));
+	return missingIds.length === 0 ? frozenIds : [...frozenIds, ...missingIds];
+}
+
 const EMPTY_GAME_STATE: AmongUsState = {
 	gameState: GameState.UNKNOWN,
 	oldGameState: GameState.UNKNOWN,
@@ -701,16 +719,10 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		// reuse it for the rest of the meeting (MeetingHud remounts each new meeting,
 		// clearing the ref).
 		if (gameState.gameState === GameState.DISCUSSION) {
-			if (frozenMeetingOrderRef.current === null || src.length > frozenMeetingOrderRef.current.length) {
-				frozenMeetingOrderRef.current = src
-					.map((player, index) => ({ player, index }))
-					.sort((a, b) => {
-						const aDead = a.player.isDead ? 1 : 0;
-						const bDead = b.player.isDead ? 1 : 0;
-						if (aDead !== bDead) return aDead - bDead;
-						return a.index - b.index;
-					})
-					.map((entry) => entry.player.id);
+			if (frozenMeetingOrderRef.current === null) {
+				frozenMeetingOrderRef.current = sortedMeetingPlayerIds(src);
+			} else if (src.length > frozenMeetingOrderRef.current.length) {
+				frozenMeetingOrderRef.current = appendMissingMeetingPlayers(frozenMeetingOrderRef.current, src);
 			}
 
 			const frozen = frozenMeetingOrderRef.current;
