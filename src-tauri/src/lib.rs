@@ -372,13 +372,14 @@ fn set_overlay_child_styles(window: &WebviewWindow, parent_hwnd: Option<windows:
     unsafe {
         SetParent(overlay_hwnd, parent_hwnd).map_err(|error| error.to_string())?;
         let style = GetWindowLongPtrW(overlay_hwnd, GWL_STYLE);
-        let mut next_style = style | WS_VISIBLE.0 as isize;
+        let mut next_style = style;
         if parent_hwnd.is_some() {
+            next_style |= WS_VISIBLE.0 as isize;
             next_style |= WS_CHILD.0 as isize;
             next_style &= !(WS_POPUP.0 as isize);
         } else {
             next_style |= WS_POPUP.0 as isize;
-            next_style &= !(WS_CHILD.0 as isize);
+            next_style &= !(WS_CHILD.0 as isize | WS_VISIBLE.0 as isize);
         }
         SetWindowLongPtrW(overlay_hwnd, GWL_STYLE, next_style);
 
@@ -409,15 +410,22 @@ fn detach_overlay_window(window: &WebviewWindow) -> Result<(), String> {
     set_overlay_child_styles(window, None, None)
 }
 
+fn hide_overlay_window(window: &WebviewWindow) -> Result<(), String> {
+    let hide_result = window.hide().map_err(|error| error.to_string());
+    #[cfg(windows)]
+    {
+        let _ = detach_overlay_window(window);
+    }
+    hide_result
+}
+
 fn refresh_overlay_window(app: &AppHandle, enabled: bool) -> Result<(), String> {
     let window = app
         .get_webview_window("overlay")
         .ok_or_else(|| "Window not found: overlay".to_string())?;
 
     if !enabled {
-        #[cfg(windows)]
-        let _ = detach_overlay_window(&window);
-        return window.hide().map_err(|error| error.to_string());
+        return hide_overlay_window(&window);
     }
 
     configure_overlay_window(&window)?;
@@ -425,13 +433,11 @@ fn refresh_overlay_window(app: &AppHandle, enabled: bool) -> Result<(), String> 
     #[cfg(windows)]
     {
         let Some(state) = find_among_us_window_state() else {
-            let _ = detach_overlay_window(&window);
-            return window.hide().map_err(|error| error.to_string());
+            return hide_overlay_window(&window);
         };
 
         if state.is_minimized {
-            let _ = detach_overlay_window(&window);
-            return window.hide().map_err(|error| error.to_string());
+            return hide_overlay_window(&window);
         }
 
         let _ = window.set_fullscreen(false);
