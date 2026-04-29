@@ -26,6 +26,7 @@ function check(name, ok) {
 }
 
 check('overlay_visible_when_among_us_not_foreground', !/!\s*state\.is_foreground/.test(lib));
+check('overlay_removed_unused_foreground_state', !/is_foreground/.test(lib) && !/GetForegroundWindow/.test(lib));
 check('meeting_order_frozen_for_all_huds', /frozenMeetingOrderRef/.test(overlay));
 check('meeting_slot_count_uses_frozen_slots', /aleLuduSlotCount/.test(overlay));
 check('meeting_freeze_allows_initial_roster_growth', /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay));
@@ -97,6 +98,7 @@ const overlay = fs.readFileSync('src/renderer/Overlay.tsx', 'utf8');
 const voice = fs.readFileSync('src/renderer/Voice.tsx', 'utf8');
 const checks = [
   !/!\s*state\.is_foreground/.test(lib),
+  !/is_foreground/.test(lib) && !/GetForegroundWindow/.test(lib),
   /frozenMeetingOrderRef/.test(overlay),
   /aleLuduSlotCount/.test(overlay),
   /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay),
