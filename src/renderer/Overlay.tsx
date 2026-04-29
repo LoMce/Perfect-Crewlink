@@ -242,6 +242,11 @@ function appendMissingMeetingPlayers(frozenIds: number[], players: Player[]): nu
 	return missingIds.length === 0 ? frozenIds : [...frozenIds, ...missingIds];
 }
 
+function hasMissingMeetingPlayers(frozenIds: number[], players: Player[]): boolean {
+	const seen = new Set(frozenIds);
+	return players.some((player) => !seen.has(player.id));
+}
+
 const EMPTY_GAME_STATE: AmongUsState = {
 	gameState: GameState.UNKNOWN,
 	oldGameState: GameState.UNKNOWN,
@@ -727,7 +732,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		if (gameState.gameState === GameState.DISCUSSION) {
 			if (frozenMeetingOrderRef.current === null) {
 				frozenMeetingOrderRef.current = sortedMeetingPlayerIds(src);
-			} else if (src.length > frozenMeetingOrderRef.current.length) {
+			} else if (src.length > frozenMeetingOrderRef.current.length || hasMissingMeetingPlayers(frozenMeetingOrderRef.current, src)) {
 				frozenMeetingOrderRef.current = appendMissingMeetingPlayers(frozenMeetingOrderRef.current, src);
 			}
 
