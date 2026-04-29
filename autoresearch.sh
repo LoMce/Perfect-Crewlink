@@ -45,6 +45,7 @@ const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn emb
 const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
 check('overlay_child_style_set_before_setparent', overlayChildStyles.indexOf('next_style |= WS_CHILD') >= 0 && overlayChildStyles.indexOf('next_style |= WS_CHILD') < overlayChildStyles.indexOf('SetParent(overlay_hwnd'));
 check('overlay_detach_applies_framechanged', /if let Some\(size\) = size[\s\S]*?\} else \{[\s\S]*?SetWindowPos\([\s\S]*?SWP_NOMOVE \| SWP_NOSIZE \| SWP_NOZORDER \| SWP_NOACTIVATE \| SWP_FRAMECHANGED/.test(overlayChildStyles));
+check('overlay_skips_redundant_setparent', /GetParent/.test(overlayChildStyles) && /current_parent != Some\(parent_hwnd\)/.test(overlayChildStyles) && /current_parent\.is_some\(\)/.test(overlayChildStyles));
 check('meeting_order_frozen_for_all_huds', /frozenMeetingOrderRef/.test(overlay));
 check('meeting_slot_count_uses_frozen_slots', /aleLuduSlotCount/.test(overlay));
 check('meeting_freeze_allows_initial_roster_growth', /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay));
@@ -144,6 +145,12 @@ const checks = [
     const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
     const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
     return /if let Some\(size\) = size[\s\S]*?\} else \{[\s\S]*?SetWindowPos\([\s\S]*?SWP_NOMOVE \| SWP_NOSIZE \| SWP_NOZORDER \| SWP_NOACTIVATE \| SWP_FRAMECHANGED/.test(overlayChildStyles);
+  })(),
+  (() => {
+    const overlayChildStylesStart = lib.indexOf('fn set_overlay_child_styles');
+    const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
+    const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
+    return /GetParent/.test(overlayChildStyles) && /current_parent != Some\(parent_hwnd\)/.test(overlayChildStyles) && /current_parent\.is_some\(\)/.test(overlayChildStyles);
   })(),
   /frozenMeetingOrderRef/.test(overlay),
   /aleLuduSlotCount/.test(overlay),
