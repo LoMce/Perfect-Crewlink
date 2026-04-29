@@ -705,7 +705,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		// reuse it for the rest of the meeting (MeetingHud remounts each new meeting,
 		// clearing the ref).
 		if (gameState.gameState === GameState.DISCUSSION) {
-			if (frozenMeetingOrderRef.current === null) {
+			if (frozenMeetingOrderRef.current === null || src.length > frozenMeetingOrderRef.current.length) {
 				frozenMeetingOrderRef.current = src
 					.map((player, index) => ({ player, index }))
 					.sort((a, b) => {
