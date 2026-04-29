@@ -34,6 +34,10 @@ const hideOverlayWindowStart = lib.indexOf('fn hide_overlay_window');
 const hideOverlayWindowEnd = hideOverlayWindowStart >= 0 ? lib.indexOf('fn refresh_overlay_window', hideOverlayWindowStart) : -1;
 const hideOverlayWindow = hideOverlayWindowStart >= 0 && hideOverlayWindowEnd > hideOverlayWindowStart ? lib.slice(hideOverlayWindowStart, hideOverlayWindowEnd) : '';
 check('overlay_detaches_after_hide_without_forcing_visible', /window\.hide\(\)/.test(hideOverlayWindow) && /detach_overlay_window\(window\)/.test(hideOverlayWindow) && hideOverlayWindow.indexOf('window.hide()') < hideOverlayWindow.indexOf('detach_overlay_window(window)') && (lib.match(/hide_overlay_window\(&window\)/g)?.length ?? 0) >= 3 && !/let mut next_style = style \| WS_VISIBLE/.test(lib));
+const overlayChildStylesStart = lib.indexOf('fn set_overlay_child_styles');
+const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
+const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
+check('overlay_child_style_set_before_setparent', overlayChildStyles.indexOf('next_style |= WS_CHILD') >= 0 && overlayChildStyles.indexOf('next_style |= WS_CHILD') < overlayChildStyles.indexOf('SetParent(overlay_hwnd'));
 check('meeting_order_frozen_for_all_huds', /frozenMeetingOrderRef/.test(overlay));
 check('meeting_slot_count_uses_frozen_slots', /aleLuduSlotCount/.test(overlay));
 check('meeting_freeze_allows_initial_roster_growth', /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay));
@@ -115,6 +119,12 @@ const checks = [
     const hideOverlayWindowEnd = hideOverlayWindowStart >= 0 ? lib.indexOf('fn refresh_overlay_window', hideOverlayWindowStart) : -1;
     const hideOverlayWindow = hideOverlayWindowStart >= 0 && hideOverlayWindowEnd > hideOverlayWindowStart ? lib.slice(hideOverlayWindowStart, hideOverlayWindowEnd) : '';
     return /window\.hide\(\)/.test(hideOverlayWindow) && /detach_overlay_window\(window\)/.test(hideOverlayWindow) && hideOverlayWindow.indexOf('window.hide()') < hideOverlayWindow.indexOf('detach_overlay_window(window)') && (lib.match(/hide_overlay_window\(&window\)/g)?.length ?? 0) >= 3 && !/let mut next_style = style \| WS_VISIBLE/.test(lib);
+  })(),
+  (() => {
+    const overlayChildStylesStart = lib.indexOf('fn set_overlay_child_styles');
+    const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
+    const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
+    return overlayChildStyles.indexOf('next_style |= WS_CHILD') >= 0 && overlayChildStyles.indexOf('next_style |= WS_CHILD') < overlayChildStyles.indexOf('SetParent(overlay_hwnd');
   })(),
   /frozenMeetingOrderRef/.test(overlay),
   /aleLuduSlotCount/.test(overlay),
