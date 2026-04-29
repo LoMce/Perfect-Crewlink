@@ -365,7 +365,7 @@ fn find_among_us_window_state() -> Option<AmongUsWindowState> {
 fn set_overlay_child_styles(window: &WebviewWindow, parent_hwnd: Option<windows::Win32::Foundation::HWND>, size: Option<PhysicalSize<u32>>) -> Result<(), String> {
     use windows::Win32::UI::WindowsAndMessaging::{
         GetWindowLongPtrW, SetParent, SetWindowLongPtrW, SetWindowPos, GWL_STYLE,
-        SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOZORDER, WS_CHILD, WS_POPUP, WS_VISIBLE,
+        HWND_TOP, SWP_FRAMECHANGED, SWP_NOACTIVATE, WS_CHILD, WS_POPUP, WS_VISIBLE,
     };
 
     let overlay_hwnd = window.hwnd().map_err(|error| error.to_string())?;
@@ -385,12 +385,12 @@ fn set_overlay_child_styles(window: &WebviewWindow, parent_hwnd: Option<windows:
         if let Some(size) = size {
             SetWindowPos(
                 overlay_hwnd,
-                None,
+                Some(HWND_TOP),
                 0,
                 0,
                 size.width as i32,
                 size.height as i32,
-                SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
+                SWP_NOACTIVATE | SWP_FRAMECHANGED,
             )
             .map_err(|error| error.to_string())?;
         }
