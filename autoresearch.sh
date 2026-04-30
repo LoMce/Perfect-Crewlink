@@ -81,6 +81,20 @@ check('audio_monitor_requires_socket_mapped_client_id', /const activeClientId = 
 console.log(`METRIC static_bug_checks=${bugScore}`);
 NODE
 
+simulation_log="${TMPDIR:-.}/perfectcrewlink-simulations.log"
+set +e
+node scripts/simulate-highlight-audio.mjs >"$simulation_log" 2>&1
+simulation_status=$?
+set -e
+if [[ "$simulation_status" -ne 0 ]]; then
+	echo "SIMULATION_CRASH"
+	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$simulation_log"
+	simulation_failures=10
+else
+	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.readFileSync(p, 'utf8'); process.stdout.write(text);" "$simulation_log"
+	simulation_failures=$(node -e "const fs = require('fs'); const text = fs.readFileSync(process.argv[1], 'utf8'); const match = text.match(/METRIC simulation_failures=(\\d+)/); console.log(match ? match[1] : '10');" "$simulation_log")
+fi
+
 typecheck_log="${TMPDIR:-.}/perfectcrewlink-typecheck.log"
 set +e
 npm run typecheck --silent >"$typecheck_log" 2>&1
@@ -207,7 +221,8 @@ console.log(checks.filter((ok) => !ok).length);
 NODE
 )
 
-bug_score=$((static_bug_checks + typecheck_fail * 10 + build_fail * 10 + rust_check_fail * 10))
+bug_score=$((static_bug_checks + simulation_failures + typecheck_fail * 10 + build_fail * 10 + rust_check_fail * 10))
+echo "METRIC simulation_failures=$simulation_failures"
 echo "METRIC typecheck_fail=$typecheck_fail"
 echo "METRIC build_fail=$build_fail"
 echo "METRIC rust_check_fail=$rust_check_fail"

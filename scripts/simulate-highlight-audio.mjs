@@ -1,0 +1,212 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+
+function read(path) {
+	return fs.readFileSync(path, "utf8");
+}
+
+const overlay = read("src/renderer/Overlay.tsx");
+const voice = read("src/renderer/Voice.tsx");
+
+let failures = 0;
+function check(name, ok, detail = "") {
+	if (ok) {
+		console.log(`SIM_PASS ${name}`);
+	} else {
+		failures += 1;
+		console.log(`SIM_FAIL ${name}${detail ? ` ${detail}` : ""}`);
+	}
+}
+
+function makePlayer(id, overrides = {}) {
+	return {
+		id,
+		clientId: 100 + id,
+		colorId: id,
+		isDead: false,
+		disconnected: false,
+		isLocal: false,
+		...overrides,
+	};
+}
+
+function sortedMeetingPlayerIds(players) {
+	return players
+		.map((player, index) => ({ player, index }))
+		.sort((a, b) => {
+			const aDead = a.player.isDead ? 1 : 0;
+			const bDead = b.player.isDead ? 1 : 0;
+			if (aDead !== bDead) return aDead - bDead;
+			return a.index - b.index;
+		})
+		.map((entry) => entry.player.id);
+}
+
+function appendMissingMeetingPlayers(frozenIds, players) {
+	const seen = new Set(frozenIds);
+	const missingIds = sortedMeetingPlayerIds(players).filter(
+		(id) => !seen.has(id),
+	);
+	return missingIds.length === 0 ? frozenIds : [...frozenIds, ...missingIds];
+}
+
+function hasMissingMeetingPlayers(frozenIds, players) {
+	const seen = new Set(frozenIds);
+	return players.some((player) => !seen.has(player.id));
+}
+
+function updateFrozenOrder(frozen, players) {
+	if (!frozen) return sortedMeetingPlayerIds(players);
+	if (
+		players.length > frozen.length ||
+		hasMissingMeetingPlayers(frozen, players)
+	) {
+		return appendMissingMeetingPlayers(frozen, players);
+	}
+	return frozen;
+}
+
+function overlaySlots(frozen, players) {
+	const byId = new Map(players.map((player) => [player.id, player]));
+	return frozen.map((id, slotIndex) => ({
+		slotIndex,
+		player: byId.get(id) ?? null,
+	}));
+}
+
+function expectedMeetingTalking(player, voiceState) {
+	const playerDead =
+		player.isDead ||
+		player.disconnected ||
+		Boolean(voiceState.otherDead[player.clientId]);
+	if (voiceState.localIsAlive && !player.isLocal && playerDead) {
+		return false;
+	}
+	return Boolean(
+		voiceState.otherTalking[player.clientId] ||
+			(player.isLocal && voiceState.localTalking),
+	);
+}
+
+function topDownPan(me, other) {
+	return [other.x - me.x, 0, -(other.y - me.y)];
+}
+
+const basePlayers = Array.from({ length: 10 }, (_, id) => makePlayer(id));
+const initialOrder = updateFrozenOrder(null, basePlayers);
+
+const killedPlayers = basePlayers.map((player) =>
+	player.id === 2 ? { ...player, isDead: true } : player,
+);
+const afterDeath = updateFrozenOrder(initialOrder, killedPlayers);
+check(
+	"meeting_death_keeps_slot_order",
+	JSON.stringify(afterDeath) === JSON.stringify(initialOrder),
+);
+
+const disconnectedPlayers = basePlayers.filter((player) => player.id !== 3);
+const disconnectSlots = overlaySlots(
+	updateFrozenOrder(initialOrder, disconnectedPlayers),
+	disconnectedPlayers,
+);
+check(
+	"meeting_disconnect_keeps_placeholder",
+	disconnectSlots[3]?.player === null && disconnectSlots[4]?.player?.id === 4,
+);
+
+const replacementPlayers = basePlayers
+	.filter((player) => player.id !== 3)
+	.concat(makePlayer(99, { clientId: 199, colorId: 6 }));
+const replacementOrder = updateFrozenOrder(initialOrder, replacementPlayers);
+const replacementSlots = overlaySlots(replacementOrder, replacementPlayers);
+check(
+	"meeting_same_length_replacement_appends",
+	replacementSlots[3]?.player === null &&
+		replacementSlots.at(-1)?.player?.id === 99,
+);
+
+const swappedColors = basePlayers.map((player) => {
+	if (player.id === 1) return { ...player, colorId: 8 };
+	if (player.id === 8) return { ...player, colorId: 1 };
+	return player;
+});
+const swappedSlots = overlaySlots(
+	updateFrozenOrder(initialOrder, swappedColors),
+	swappedColors,
+);
+const swappedSpeakerSlot = swappedSlots.find(
+	(slot) => slot.player?.clientId === 108,
+);
+check(
+	"meeting_color_swap_keeps_identity_slot",
+	swappedSpeakerSlot?.slotIndex === 8 &&
+		swappedSpeakerSlot.player.colorId === 1,
+);
+
+const deadSpeaker = makePlayer(5, { isDead: true });
+check(
+	"meeting_dead_remote_not_highlighted_for_alive_local",
+	expectedMeetingTalking(deadSpeaker, {
+		localIsAlive: true,
+		localTalking: false,
+		otherTalking: { [deadSpeaker.clientId]: true },
+		otherDead: { [deadSpeaker.clientId]: true },
+	}) === false,
+);
+check(
+	"meeting_dead_remote_can_highlight_for_dead_local",
+	expectedMeetingTalking(deadSpeaker, {
+		localIsAlive: false,
+		localTalking: false,
+		otherTalking: { [deadSpeaker.clientId]: true },
+		otherDead: { [deadSpeaker.clientId]: true },
+	}) === true,
+);
+
+check(
+	"audio_right_maps_to_positive_x",
+	JSON.stringify(topDownPan({ x: 0, y: 0 }, { x: 2, y: 0 })) ===
+		JSON.stringify([2, 0, 0]),
+);
+check(
+	"audio_up_maps_to_negative_z_no_vertical_y",
+	JSON.stringify(topDownPan({ x: 0, y: 0 }, { x: 0, y: 3 })) ===
+		JSON.stringify([0, 0, -3]),
+);
+check(
+	"audio_diagonal_preserves_distance",
+	Math.hypot(
+		...[
+			topDownPan({ x: 1, y: 1 }, { x: 4, y: 5 })[0],
+			topDownPan({ x: 1, y: 1 }, { x: 4, y: 5 })[2],
+		],
+	) === 5,
+);
+
+check(
+	"source_meeting_highlight_filters_dead_for_alive_local",
+	/function isMeetingPlayerTalking/.test(overlay) &&
+		/voiceState\.localIsAlive/.test(overlay) &&
+		/voiceState\.otherDead\[player\.clientId\]/.test(overlay) &&
+		/player\.isDead/.test(overlay) &&
+		/player\.disconnected/.test(overlay),
+);
+check(
+	"source_audio_uses_top_down_xz_axes",
+	/pan\.positionX\.setValueAtTime\(panPos\[0\]/.test(voice) &&
+		/pan\.positionY\.setValueAtTime\(0/.test(voice) &&
+		/pan\.positionZ\.setValueAtTime\(-panPos\[1\]/.test(voice),
+);
+check(
+	"source_voice_activity_requires_mapped_socket",
+	/const mappedClient = socketClientsRef\.current\[data\.socketId\]/.test(
+		voice,
+	) &&
+		/if \(!mappedClient\)/.test(voice) &&
+		/const activeClientId = socketClientsRef\.current\[peer\]\?\.clientId;/.test(
+			voice,
+		) &&
+		/if \(activeClientId === undefined\)/.test(voice),
+);
+
+console.log(`METRIC simulation_failures=${failures}`);
