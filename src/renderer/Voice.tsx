@@ -153,6 +153,7 @@ const REMOTE_AUDIO_AUDIBLE_OFF = 0.012;
 const REMOTE_AUDIO_SPEAKING_ON = 0.045;
 const REMOTE_AUDIO_SPEAKING_OFF = 0.024;
 const REMOTE_AUDIO_TALKING_GRACE_MS = 750;
+const AUDIO_PARAM_SMOOTHING_SECONDS = 0.04;
 
 export interface VoiceProps {
 	t: (key: string) => string;
@@ -495,11 +496,21 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		}
 	}
 
+	function setSmoothedAudioParam(param: AudioParam, value: number, context: BaseAudioContext) {
+		const now = context.currentTime;
+		param.cancelScheduledValues(now);
+		param.setTargetAtTime(value, now, AUDIO_PARAM_SMOOTHING_SECONDS);
+	}
+
+	function setSmoothedGain(gain: GainNode, value: number) {
+		setSmoothedAudioParam(gain.gain, value, gain.context);
+	}
+
 	function setTopDownPanPosition(pan: PannerNode, panPos: number[]) {
 		const audioContext = pan.context;
-		pan.positionX.setValueAtTime(panPos[0], audioContext.currentTime);
-		pan.positionY.setValueAtTime(0, audioContext.currentTime);
-		pan.positionZ.setValueAtTime(-panPos[1], audioContext.currentTime);
+		setSmoothedAudioParam(pan.positionX, panPos[0], audioContext);
+		setSmoothedAudioParam(pan.positionY, 0, audioContext);
+		setSmoothedAudioParam(pan.positionZ, -panPos[1], audioContext);
 	}
 
 	function calculateVoiceAudio(
@@ -1800,7 +1811,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 					}
 					gain = gain * (settings.masterVolume / 100);
 				}
-				audio.gain.gain.value = gain;
+				setSmoothedGain(audio.gain, gain);
 				tempTalking[player.clientId] = gain > 0 && Boolean(serverVadTalking || localPeerTalking);
 				if (tempTalking[player.clientId] != otherTalking[player.clientId]) {
 					talkingUpdate = true;
@@ -1823,7 +1834,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		for (const peerId of Object.keys(audioElements.current).filter((e) => !handledPeerIds.includes(e))) {
 			const audio = audioElements.current[peerId];
 			if (audio && audio.gain) {
-				audio.gain.gain.value = 0;
+				setSmoothedGain(audio.gain, 0);
 			}
 			// maybe disconnect later
 		}
