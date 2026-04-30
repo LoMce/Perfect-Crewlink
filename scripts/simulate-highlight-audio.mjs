@@ -55,6 +55,10 @@ function hasMissingMeetingPlayers(frozenIds, players) {
 	return players.some((player) => !seen.has(player.id));
 }
 
+function rawMeetingPlayerIds(players) {
+	return players.map((player) => player.id);
+}
+
 function updateFrozenOrder(frozen, players) {
 	if (!frozen) return sortedMeetingPlayerIds(players);
 	if (
@@ -74,13 +78,25 @@ function overlaySlots(frozen, players) {
 	}));
 }
 
-function expectedMeetingTalking(player, voiceState) {
+function expectedFreshConnection(player, voiceState, now) {
+	if (player.isLocal) return true;
+	const connection = voiceState.clientConnections?.[player.clientId];
+	return Boolean(
+		(connection?.lastSeenAt && now - connection.lastSeenAt <= 2000) ||
+			(connection?.lastAudioAt && now - connection.lastAudioAt <= 1500),
+	);
+}
+
+function expectedMeetingTalking(player, voiceState, now = Date.now()) {
 	if (!player.isLocal && player.disconnected) {
 		return false;
 	}
 	const playerDead =
 		player.isDead || Boolean(voiceState.otherDead[player.clientId]);
 	if (voiceState.localIsAlive && !player.isLocal && playerDead) {
+		return false;
+	}
+	if (!expectedFreshConnection(player, voiceState, now)) {
 		return false;
 	}
 	return Boolean(
@@ -103,6 +119,14 @@ function effectiveVisionDistance(visionHearing, maxDistance, lightRadius) {
 
 const basePlayers = Array.from({ length: 10 }, (_, id) => makePlayer(id));
 const initialOrder = updateFrozenOrder(null, basePlayers);
+const midMeetingBootstrapPlayers = basePlayers.map((player) =>
+	[1, 2, 6].includes(player.id) ? { ...player, isDead: true } : player,
+);
+check(
+	"meeting_mid_round_bootstrap_keeps_reader_order",
+	JSON.stringify(rawMeetingPlayerIds(midMeetingBootstrapPlayers)) ===
+		JSON.stringify(basePlayers.map((player) => player.id)),
+);
 
 const killedPlayers = basePlayers.map((player) =>
 	player.id === 2 ? { ...player, isDead: true } : player,
@@ -160,6 +184,9 @@ check(
 		localTalking: false,
 		otherTalking: { [deadSpeaker.clientId]: true },
 		otherDead: { [deadSpeaker.clientId]: true },
+		clientConnections: {
+			[deadSpeaker.clientId]: { lastSeenAt: Date.now() },
+		},
 	}) === false,
 );
 check(
@@ -169,7 +196,31 @@ check(
 		localTalking: false,
 		otherTalking: { [deadSpeaker.clientId]: true },
 		otherDead: { [deadSpeaker.clientId]: true },
+		clientConnections: {
+			[deadSpeaker.clientId]: { lastSeenAt: Date.now() },
+		},
 	}) === true,
+);
+const staleSpeaker = makePlayer(4);
+check(
+	"meeting_stale_persisted_voice_state_not_highlighted",
+	expectedMeetingTalking(
+		staleSpeaker,
+		{
+			localIsAlive: true,
+			localTalking: false,
+			otherTalking: { [staleSpeaker.clientId]: true },
+			otherDead: {},
+			clientConnections: {
+				[staleSpeaker.clientId]: {
+					connected: true,
+					lastSeenAt: 1,
+					lastAudioAt: 1,
+				},
+			},
+		},
+		10000,
+	) === false,
 );
 const disconnectedSpeaker = makePlayer(6, { disconnected: true });
 check(
@@ -179,6 +230,9 @@ check(
 		localTalking: false,
 		otherTalking: { [disconnectedSpeaker.clientId]: true },
 		otherDead: {},
+		clientConnections: {
+			[disconnectedSpeaker.clientId]: { lastSeenAt: Date.now() },
+		},
 	}) === false,
 );
 
@@ -226,6 +280,19 @@ check(
 	/if \(!player\.isLocal && player\.disconnected\) \{\s*return false;\s*\}/.test(
 		overlay,
 	),
+);
+check(
+	"source_meeting_bootstrap_uses_reader_order_when_mid_round",
+	/function initialMeetingPlayerIds/.test(overlay) &&
+		/gameState\.oldGameState !== GameState\.TASKS/.test(overlay) &&
+		/players\.map\(\(player\) => player\.id\)/.test(overlay),
+);
+check(
+	"source_meeting_highlight_requires_fresh_voice_state",
+	/function isClientVoiceStateFresh/.test(overlay) &&
+		/lastSeenAt/.test(overlay) &&
+		/lastAudioAt/.test(overlay) &&
+		/isClientVoiceStateFresh\(player, voiceState/.test(overlay),
 );
 check(
 	"source_audio_uses_top_down_xz_axes",
@@ -299,6 +366,14 @@ check(
 		/audio\.reverbConnected/.test(voice) &&
 		!/function applyEffect/.test(voice) &&
 		!/function restoreEffect/.test(voice),
+);
+check(
+	"source_audio_separates_radio_and_environment_muffle",
+	/radioMuffle/.test(voice) &&
+		/radioMuffleConnected/.test(voice) &&
+		/radioMuffle\.type = ['"]highpass['"]/.test(voice) &&
+		/muffle\.type = ['"]lowpass['"]/.test(voice) &&
+		!/muffle\.type = ['"]highpass['"]/.test(voice),
 );
 check(
 	"source_voice_activity_requires_mapped_socket",
