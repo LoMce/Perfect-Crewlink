@@ -223,6 +223,10 @@ check(
 	/pan\.panningModel = ['"]HRTF['"]/.test(voice),
 );
 check(
+	"source_audio_uses_effective_maxdistance",
+	/pan\.maxDistance = maxdistance/.test(voice),
+);
+check(
 	"source_voice_activity_requires_mapped_socket",
 	/const mappedClient = socketClientsRef\.current\[data\.socketId\]/.test(
 		voice,
