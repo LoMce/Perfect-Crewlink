@@ -238,6 +238,12 @@ check(
 		!/muffle\.frequency\.value =/.test(voice) &&
 		!/muffle\.Q\.value =/.test(voice),
 );
+const ventMuffleBlock =
+	voice.match(/\/\/ Muffling in vents[\s\S]*?if \(endGain === 1\)/)?.[0] ?? "";
+check(
+	"source_audio_sets_vent_camera_lowpass_type",
+	/muffle\.type = ['"]lowpass['"]/.test(ventMuffleBlock),
+);
 check(
 	"source_voice_activity_requires_mapped_socket",
 	/const mappedClient = socketClientsRef\.current\[data\.socketId\]/.test(
