@@ -92,6 +92,10 @@ function topDownPan(me, other) {
 	return [other.x - me.x, 0, -(other.y - me.y)];
 }
 
+function smoothValue(current, target, time, timeConstant) {
+	return target + (current - target) * Math.exp(-time / timeConstant);
+}
+
 const basePlayers = Array.from({ length: 10 }, (_, id) => makePlayer(id));
 const initialOrder = updateFrozenOrder(null, basePlayers);
 
@@ -182,6 +186,11 @@ check(
 		],
 	) === 5,
 );
+const smoothed = smoothValue(0, 10, 0.08, 0.04);
+check(
+	"audio_smoothing_moves_toward_target_without_overshoot",
+	smoothed > 0 && smoothed < 10,
+);
 
 check(
 	"source_meeting_highlight_filters_dead_for_alive_local",
@@ -193,9 +202,21 @@ check(
 );
 check(
 	"source_audio_uses_top_down_xz_axes",
-	/pan\.positionX\.setValueAtTime\(panPos\[0\]/.test(voice) &&
-		/pan\.positionY\.setValueAtTime\(0/.test(voice) &&
-		/pan\.positionZ\.setValueAtTime\(-panPos\[1\]/.test(voice),
+	/pan\.positionX/.test(voice) &&
+		/pan\.positionY/.test(voice) &&
+		/pan\.positionZ/.test(voice) &&
+		/-panPos\[1\]/.test(voice),
+);
+check(
+	"source_audio_smooths_pan_and_gain",
+	/AUDIO_PARAM_SMOOTHING_SECONDS/.test(voice) &&
+		/function setSmoothedAudioParam/.test(voice) &&
+		/setSmoothedAudioParam\(pan\.positionX/.test(voice) &&
+		/setSmoothedAudioParam\(pan\.positionY, 0/.test(voice) &&
+		/setSmoothedAudioParam\(pan\.positionZ, -panPos\[1\]/.test(voice) &&
+		/function setSmoothedGain/.test(voice) &&
+		/setSmoothedGain\(audio\.gain, gain\)/.test(voice) &&
+		/setSmoothedGain\(audio\.gain, 0\)/.test(voice),
 );
 check(
 	"source_voice_activity_requires_mapped_socket",
