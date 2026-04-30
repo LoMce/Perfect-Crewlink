@@ -402,7 +402,9 @@ check(
 	/AUDIO_MUFFLE_OFF_FREQUENCY/.test(voice) &&
 		/gain\.connect\(radioMuffle\)/.test(voice) &&
 		/radioMuffle\.connect\(muffle\)/.test(voice) &&
-		/muffle\.connect\(destination\)/.test(voice) &&
+		(/muffle\.connect\(destination\)/.test(voice) ||
+			(/muffle\.connect\(limiter\)/.test(voice) &&
+				/limiter\.connect\(destination\)/.test(voice))) &&
 		!/if \(audio\.muffleConnected\) \{\s*output\.connect\(muffle\)/.test(voice),
 );
 check(
