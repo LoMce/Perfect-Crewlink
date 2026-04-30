@@ -1,16 +1,31 @@
-import React, { useEffect, useMemo, useRef, useState, CSSProperties } from 'react';
-import { bridge } from './bridge';
-import { AmongUsState, GameState, Player, VoiceState } from '../common/AmongUsState';
-import { IpcOverlayMessages, IpcMessages } from '../common/ipc-messages';
-import ReactDOM from 'react-dom';
-import makeStyles from '@mui/styles/makeStyles';
-import './css/overlay.css';
-import Avatar from './Avatar';
-import { AleLuduColumnTuning, AleLuduTuning, ISettings } from '../common/ISettings';
-import { DEFAULT_PLAYERCOLORS } from '../common/playerColors';
-import { OVERLAY_STATE_KEYS, readOverlayState } from '../common/overlay-state';
-import SettingsStore from './settings/SettingsStore';
-import { CameraLocation, MapType } from '../common/AmongusMap';
+import React, {
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	CSSProperties,
+} from "react";
+import { bridge } from "./bridge";
+import {
+	AmongUsState,
+	GameState,
+	Player,
+	VoiceState,
+} from "../common/AmongUsState";
+import { IpcOverlayMessages, IpcMessages } from "../common/ipc-messages";
+import ReactDOM from "react-dom";
+import makeStyles from "@mui/styles/makeStyles";
+import "./css/overlay.css";
+import Avatar from "./Avatar";
+import {
+	AleLuduColumnTuning,
+	AleLuduTuning,
+	ISettings,
+} from "../common/ISettings";
+import { DEFAULT_PLAYERCOLORS } from "../common/playerColors";
+import { OVERLAY_STATE_KEYS, readOverlayState } from "../common/overlay-state";
+import SettingsStore from "./settings/SettingsStore";
+import { CameraLocation, MapType } from "../common/AmongusMap";
 
 interface UseStylesProps {
 	height: number;
@@ -33,42 +48,54 @@ interface UseStylesProps {
 }
 
 export interface playerContainerCss extends CSSProperties {
-	'--size': string;
+	"--size": string;
 }
 
 const useStyles = makeStyles(() => ({
 	meetingHud: {
-		position: 'absolute',
+		position: "absolute",
 		// aleLudu-mode: explicit rect as % of viewport (tunable in Settings panel).
 		// legacy / non-aleLudu: keep centered-with-computed-pixel-size behavior.
-		top: ({ aleLuduMode, mhTopPct }: UseStylesProps) => (aleLuduMode ? `${mhTopPct}%` : '50%'),
-		left: ({ aleLuduMode, mhLeftPct }: UseStylesProps) => (aleLuduMode ? `${mhLeftPct}%` : '50%'),
-		width: ({ aleLuduMode, mhWidthPct, width }: UseStylesProps) => (aleLuduMode ? `${mhWidthPct}%` : width),
-		height: ({ aleLuduMode, mhHeightPct, height }: UseStylesProps) => (aleLuduMode ? `${mhHeightPct}%` : height),
-		transform: ({ aleLuduMode }: UseStylesProps) => (aleLuduMode ? 'none' : 'translate(-50%, -50%)'),
+		top: ({ aleLuduMode, mhTopPct }: UseStylesProps) =>
+			aleLuduMode ? `${mhTopPct}%` : "50%",
+		left: ({ aleLuduMode, mhLeftPct }: UseStylesProps) =>
+			aleLuduMode ? `${mhLeftPct}%` : "50%",
+		width: ({ aleLuduMode, mhWidthPct, width }: UseStylesProps) =>
+			aleLuduMode ? `${mhWidthPct}%` : width,
+		height: ({ aleLuduMode, mhHeightPct, height }: UseStylesProps) =>
+			aleLuduMode ? `${mhHeightPct}%` : height,
+		transform: ({ aleLuduMode }: UseStylesProps) =>
+			aleLuduMode ? "none" : "translate(-50%, -50%)",
 	},
 	tabletContainer: {
 		width: ({ oldHud, aleLuduMode, tabletWidthPct }: UseStylesProps) =>
-			oldHud ? '88.45%' : aleLuduMode ? `${tabletWidthPct}%` : '100%',
+			oldHud ? "88.45%" : aleLuduMode ? `${tabletWidthPct}%` : "100%",
 		height: ({ aleLuduMode, oldHud, tabletHeightPct }: UseStylesProps) =>
-			oldHud ? '10.5%' : aleLuduMode ? `${tabletHeightPct}%` : '10.5%',
+			oldHud ? "10.5%" : aleLuduMode ? `${tabletHeightPct}%` : "10.5%",
 		left: ({ oldHud, aleLuduMode, tabletLeftPct }: UseStylesProps) =>
-			oldHud ? '4.7%' : aleLuduMode ? `${tabletLeftPct}%` : '0.4%',
+			oldHud ? "4.7%" : aleLuduMode ? `${tabletLeftPct}%` : "0.4%",
 		top: ({ oldHud, aleLuduMode, tabletTopPct }: UseStylesProps) =>
-			oldHud ? '18.4703%' : aleLuduMode ? `${tabletTopPct}%` : '15%',
-		position: 'absolute',
-		display: ({ aleLuduMode }: UseStylesProps) => (aleLuduMode ? 'block' : 'flex'),
-		flexWrap: ({ aleLuduMode }: UseStylesProps) => (aleLuduMode ? undefined : 'wrap'),
+			oldHud ? "18.4703%" : aleLuduMode ? `${tabletTopPct}%` : "15%",
+		position: "absolute",
+		display: ({ aleLuduMode }: UseStylesProps) =>
+			aleLuduMode ? "block" : "flex",
+		flexWrap: ({ aleLuduMode }: UseStylesProps) =>
+			aleLuduMode ? undefined : "wrap",
 	},
 	playerContainer: {
-		width: ({ aleLuduMode, oldHud }: UseStylesProps) => (oldHud ? '46.41%' : aleLuduMode ? '100%' : '30%'),
-		height: ({ aleLuduMode, oldHud }: UseStylesProps) => (oldHud ? '100%' : aleLuduMode ? '100%' : '109%'),
+		width: ({ aleLuduMode, oldHud }: UseStylesProps) =>
+			oldHud ? "46.41%" : aleLuduMode ? "100%" : "30%",
+		height: ({ aleLuduMode, oldHud }: UseStylesProps) =>
+			oldHud ? "100%" : aleLuduMode ? "100%" : "109%",
 		borderRadius: ({ height }: UseStylesProps) => height / 100,
-		transition: 'opacity .1s linear',
-		marginBottom: ({ aleLuduMode, oldHud }: UseStylesProps) => (oldHud ? '2%' : aleLuduMode ? 0 : '1.9%'),
-		marginRight: ({ aleLuduMode, oldHud }: UseStylesProps) => (oldHud ? '2.34%' : aleLuduMode ? 0 : '0.23%'),
-		marginLeft: ({ aleLuduMode, oldHud }: UseStylesProps) => (oldHud ? '0%' : aleLuduMode ? 0 : '2.4%'),
-		boxSizing: 'border-box',
+		transition: "opacity .1s linear",
+		marginBottom: ({ aleLuduMode, oldHud }: UseStylesProps) =>
+			oldHud ? "2%" : aleLuduMode ? 0 : "1.9%",
+		marginRight: ({ aleLuduMode, oldHud }: UseStylesProps) =>
+			oldHud ? "2.34%" : aleLuduMode ? 0 : "0.23%",
+		marginLeft: ({ aleLuduMode, oldHud }: UseStylesProps) =>
+			oldHud ? "0%" : aleLuduMode ? 0 : "2.4%",
+		boxSizing: "border-box",
 	},
 }));
 
@@ -83,15 +110,15 @@ function useWindowSize() {
 			onResize();
 		};
 
-		window.addEventListener('resize', onResize);
-		window.addEventListener('focus', onResize);
-		document.addEventListener('visibilitychange', onVisibilityChange);
+		window.addEventListener("resize", onResize);
+		window.addEventListener("focus", onResize);
+		document.addEventListener("visibilitychange", onVisibilityChange);
 		onResize();
 
 		return () => {
-			window.removeEventListener('resize', onResize);
-			window.removeEventListener('focus', onResize);
-			document.removeEventListener('visibilitychange', onVisibilityChange);
+			window.removeEventListener("resize", onResize);
+			window.removeEventListener("focus", onResize);
+			document.removeEventListener("visibilitychange", onVisibilityChange);
 		};
 	}, []);
 	return windowSize;
@@ -134,27 +161,58 @@ const BASE_ALE_LUDU_TUNING = {
 // with the AleLudu mod's tablet slots. Widths + row metrics are constant across
 // columns; centres are non-uniform.
 const BASE_ALE_LUDU_COLUMNS: AleLuduColumnTuning[] = [
-	{ centerPct: 13.8, widthPct: 22.6, row0CenterPct: 5.0, rowHeight: 10.0, rowGap: 2.4 },
-	{ centerPct: 38.3, widthPct: 22.5, row0CenterPct: 5.0, rowHeight: 10.0, rowGap: 2.4 },
-	{ centerPct: 62.4, widthPct: 22.6, row0CenterPct: 5.0, rowHeight: 10.0, rowGap: 2.4 },
-	{ centerPct: 86.9, widthPct: 22.6, row0CenterPct: 5.0, rowHeight: 10.0, rowGap: 2.4 },
+	{
+		centerPct: 13.8,
+		widthPct: 22.6,
+		row0CenterPct: 5.0,
+		rowHeight: 10.0,
+		rowGap: 2.4,
+	},
+	{
+		centerPct: 38.3,
+		widthPct: 22.5,
+		row0CenterPct: 5.0,
+		rowHeight: 10.0,
+		rowGap: 2.4,
+	},
+	{
+		centerPct: 62.4,
+		widthPct: 22.6,
+		row0CenterPct: 5.0,
+		rowHeight: 10.0,
+		rowGap: 2.4,
+	},
+	{
+		centerPct: 86.9,
+		widthPct: 22.6,
+		row0CenterPct: 5.0,
+		rowHeight: 10.0,
+		rowGap: 2.4,
+	},
 ];
 
 function defaultColumnTuning(index: number): AleLuduColumnTuning {
 	// Clamp index into the hand-calibrated array; out-of-range should never happen
 	// since ALE_LUDU_COLUMNS === BASE_ALE_LUDU_COLUMNS.length, but guard anyway so a
 	// future ALE_LUDU_COLUMNS bump doesn't produce an undefined entry.
-	const src = BASE_ALE_LUDU_COLUMNS[index] ?? BASE_ALE_LUDU_COLUMNS[BASE_ALE_LUDU_COLUMNS.length - 1];
+	const src =
+		BASE_ALE_LUDU_COLUMNS[index] ??
+		BASE_ALE_LUDU_COLUMNS[BASE_ALE_LUDU_COLUMNS.length - 1];
 	return { ...src };
 }
 
 export const DEFAULT_ALE_LUDU_TUNING: AleLuduTuning = {
 	...BASE_ALE_LUDU_TUNING,
 	showDebug: false,
-	columns: Array.from({ length: ALE_LUDU_COLUMNS }, (_, i) => defaultColumnTuning(i)),
+	columns: Array.from({ length: ALE_LUDU_COLUMNS }, (_, i) =>
+		defaultColumnTuning(i),
+	),
 };
 
-function resolveColumnTuning(tuning: AleLuduTuning, column: number): AleLuduColumnTuning {
+function resolveColumnTuning(
+	tuning: AleLuduTuning,
+	column: number,
+): AleLuduColumnTuning {
 	const existing = tuning.columns?.[column];
 	if (existing) {
 		return existing;
@@ -172,14 +230,17 @@ function resolveColumnTuning(tuning: AleLuduTuning, column: number): AleLuduColu
 	};
 }
 
-function getAleLuduCardStyle(index: number, tuning: AleLuduTuning): CSSProperties {
+function getAleLuduCardStyle(
+	index: number,
+	tuning: AleLuduTuning,
+): CSSProperties {
 	const column = index % ALE_LUDU_COLUMNS;
 	const row = Math.floor(index / ALE_LUDU_COLUMNS);
 	const col = resolveColumnTuning(tuning, column);
 	const topCenter = col.row0CenterPct + row * (col.rowHeight + col.rowGap);
 
 	return {
-		position: 'absolute',
+		position: "absolute",
 		left: `${col.centerPct - col.widthPct / 2}%`,
 		top: `${topCenter - col.rowHeight / 2}%`,
 		width: `${col.widthPct}%`,
@@ -210,7 +271,7 @@ function measureRect(element: HTMLElement | null): MeasuredRect | null {
 
 function formatRect(rect: MeasuredRect | null): string {
 	if (!rect) {
-		return 'n/a';
+		return "n/a";
 	}
 
 	return `${rect.left},${rect.top} ${rect.width}x${rect.height}`;
@@ -236,21 +297,33 @@ function sortedMeetingPlayerIds(players: Player[]): number[] {
 		.map((entry) => entry.player.id);
 }
 
-function initialMeetingPlayerIds(gameState: AmongUsState, players: Player[]): number[] {
-	if (gameState.oldGameState !== GameState.TASKS) {
+function initialMeetingPlayerIds(
+	gameState: AmongUsState,
+	players: Player[],
+	aleLuduMode: boolean,
+): number[] {
+	if (aleLuduMode || gameState.oldGameState !== GameState.TASKS) {
 		return players.map((player) => player.id);
 	}
 
 	return sortedMeetingPlayerIds(players);
 }
 
-function appendMissingMeetingPlayers(frozenIds: number[], players: Player[]): number[] {
+function appendMissingMeetingPlayers(
+	frozenIds: number[],
+	players: Player[],
+): number[] {
 	const seen = new Set(frozenIds);
-	const missingIds = sortedMeetingPlayerIds(players).filter((id) => !seen.has(id));
+	const missingIds = sortedMeetingPlayerIds(players).filter(
+		(id) => !seen.has(id),
+	);
 	return missingIds.length === 0 ? frozenIds : [...frozenIds, ...missingIds];
 }
 
-function hasMissingMeetingPlayers(frozenIds: number[], players: Player[]): boolean {
+function hasMissingMeetingPlayers(
+	frozenIds: number[],
+	players: Player[],
+): boolean {
 	const seen = new Set(frozenIds);
 	return players.some((player) => !seen.has(player.id));
 }
@@ -259,7 +332,7 @@ const EMPTY_GAME_STATE: AmongUsState = {
 	gameState: GameState.UNKNOWN,
 	oldGameState: GameState.UNKNOWN,
 	lobbyCodeInt: -1,
-	lobbyCode: 'MENU',
+	lobbyCode: "MENU",
 	players: [],
 	isHost: false,
 	clientId: 0,
@@ -270,10 +343,10 @@ const EMPTY_GAME_STATE: AmongUsState = {
 	lightRadius: 0,
 	lightRadiusChanged: false,
 	closedDoors: [],
-	currentServer: '',
-	currentServerLabel: '',
+	currentServer: "",
+	currentServerLabel: "",
 	maxPlayers: 0,
-	mod: 'NONE',
+	mod: "NONE",
 	oldMeetingHud: false,
 };
 
@@ -286,10 +359,12 @@ const EMPTY_VOICE_STATE: VoiceState = {
 	localIsAlive: true,
 	muted: false,
 	deafened: false,
-	mod: 'NONE',
+	mod: "NONE",
 };
 
-function normalizeVoiceState(nextState: Partial<VoiceState> | null | undefined): VoiceState {
+function normalizeVoiceState(
+	nextState: Partial<VoiceState> | null | undefined,
+): VoiceState {
 	return {
 		...EMPTY_VOICE_STATE,
 		...(nextState ?? {}),
@@ -310,22 +385,33 @@ interface StableOverlayPlayer {
 
 const Overlay: React.FC = function () {
 	const [gameState, setGameState] = useState<AmongUsState>(
-		() => readOverlayState<AmongUsState>(OVERLAY_STATE_KEYS.gameState) ?? EMPTY_GAME_STATE
+		() =>
+			readOverlayState<AmongUsState>(OVERLAY_STATE_KEYS.gameState) ??
+			EMPTY_GAME_STATE,
 	);
-	const [voiceState, setVoiceState] = useState<VoiceState>(
-		() => normalizeVoiceState(readOverlayState<VoiceState>(OVERLAY_STATE_KEYS.voiceState))
+	const [voiceState, setVoiceState] = useState<VoiceState>(() =>
+		normalizeVoiceState(
+			readOverlayState<VoiceState>(OVERLAY_STATE_KEYS.voiceState),
+		),
 	);
 	const [settings, setSettings] = useState<ISettings>(
-		() => readOverlayState<ISettings>(OVERLAY_STATE_KEYS.settings) ?? SettingsStore.store
+		() =>
+			readOverlayState<ISettings>(OVERLAY_STATE_KEYS.settings) ??
+			SettingsStore.store,
 	);
 	const [playerColors, setColors] = useState<string[][]>(
-		() => readOverlayState<string[][]>(OVERLAY_STATE_KEYS.playerColors) ?? DEFAULT_PLAYERCOLORS
+		() =>
+			readOverlayState<string[][]>(OVERLAY_STATE_KEYS.playerColors) ??
+			DEFAULT_PLAYERCOLORS,
 	);
 
 	useEffect(() => {
 		let initRequests = 0;
 		const requestInitValues = () => {
-			bridge.send(IpcMessages.SEND_TO_MAINWINDOW, IpcOverlayMessages.REQUEST_INITVALUES);
+			bridge.send(
+				IpcMessages.SEND_TO_MAINWINDOW,
+				IpcOverlayMessages.REQUEST_INITVALUES,
+			);
 		};
 		const requestInitValuesOnVisibilityChange = () => {
 			requestInitValues();
@@ -338,7 +424,7 @@ const Overlay: React.FC = function () {
 			setVoiceState(normalizeVoiceState(newState));
 		};
 		const onSettings = (_: unknown, newState: ISettings) => {
-			console.log('Recieved settings..');
+			console.log("Recieved settings..");
 
 			setSettings(newState);
 		};
@@ -351,7 +437,9 @@ const Overlay: React.FC = function () {
 			}
 
 			if (event.key === OVERLAY_STATE_KEYS.gameState) {
-				const nextGameState = readOverlayState<AmongUsState>(OVERLAY_STATE_KEYS.gameState);
+				const nextGameState = readOverlayState<AmongUsState>(
+					OVERLAY_STATE_KEYS.gameState,
+				);
 				if (nextGameState) {
 					setGameState(nextGameState);
 				}
@@ -359,7 +447,9 @@ const Overlay: React.FC = function () {
 			}
 
 			if (event.key === OVERLAY_STATE_KEYS.voiceState) {
-				const nextVoiceState = readOverlayState<VoiceState>(OVERLAY_STATE_KEYS.voiceState);
+				const nextVoiceState = readOverlayState<VoiceState>(
+					OVERLAY_STATE_KEYS.voiceState,
+				);
 				if (nextVoiceState) {
 					setVoiceState(normalizeVoiceState(nextVoiceState));
 				}
@@ -367,7 +457,9 @@ const Overlay: React.FC = function () {
 			}
 
 			if (event.key === OVERLAY_STATE_KEYS.settings) {
-				const nextSettings = readOverlayState<ISettings>(OVERLAY_STATE_KEYS.settings);
+				const nextSettings = readOverlayState<ISettings>(
+					OVERLAY_STATE_KEYS.settings,
+				);
 				if (nextSettings) {
 					setSettings(nextSettings);
 				}
@@ -375,7 +467,9 @@ const Overlay: React.FC = function () {
 			}
 
 			if (event.key === OVERLAY_STATE_KEYS.playerColors) {
-				const nextPlayerColors = readOverlayState<string[][]>(OVERLAY_STATE_KEYS.playerColors);
+				const nextPlayerColors = readOverlayState<string[][]>(
+					OVERLAY_STATE_KEYS.playerColors,
+				);
 				if (nextPlayerColors) {
 					setColors(nextPlayerColors);
 				}
@@ -386,9 +480,12 @@ const Overlay: React.FC = function () {
 		bridge.on(IpcOverlayMessages.NOTIFY_VOICE_STATE_CHANGED, onVoiceState);
 		bridge.on(IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, onSettings);
 		bridge.on(IpcOverlayMessages.NOTIFY_PLAYERCOLORS_CHANGED, onColorChange);
-		window.addEventListener('storage', onStorage);
-		window.addEventListener('focus', requestInitValues);
-		document.addEventListener('visibilitychange', requestInitValuesOnVisibilityChange);
+		window.addEventListener("storage", onStorage);
+		window.addEventListener("focus", requestInitValues);
+		document.addEventListener(
+			"visibilitychange",
+			requestInitValuesOnVisibilityChange,
+		);
 		requestInitValues();
 		const initInterval = window.setInterval(() => {
 			initRequests += 1;
@@ -400,9 +497,12 @@ const Overlay: React.FC = function () {
 
 		return () => {
 			window.clearInterval(initInterval);
-			window.removeEventListener('storage', onStorage);
-			window.removeEventListener('focus', requestInitValues);
-			document.removeEventListener('visibilitychange', requestInitValuesOnVisibilityChange);
+			window.removeEventListener("storage", onStorage);
+			window.removeEventListener("focus", requestInitValues);
+			document.removeEventListener(
+				"visibilitychange",
+				requestInitValuesOnVisibilityChange,
+			);
 			bridge.off(IpcOverlayMessages.NOTIFY_GAME_STATE_CHANGED, onState);
 			bridge.off(IpcOverlayMessages.NOTIFY_VOICE_STATE_CHANGED, onVoiceState);
 			bridge.off(IpcOverlayMessages.NOTIFY_SETTINGS_CHANGED, onSettings);
@@ -421,16 +521,17 @@ const Overlay: React.FC = function () {
 		return null;
 	return (
 		<>
-			{settings.meetingOverlay && gameState.gameState === GameState.DISCUSSION && (
-				<MeetingHud
-					gameState={gameState}
-					voiceState={voiceState}
-					playerColors={playerColors}
-					aleLuduMode={settings.aleLuduMode}
-					tuning={settings.aleLuduTuning ?? DEFAULT_ALE_LUDU_TUNING}
-				/>
-			)}
-			{settings.overlayPosition !== 'hidden' && (
+			{settings.meetingOverlay &&
+				gameState.gameState === GameState.DISCUSSION && (
+					<MeetingHud
+						gameState={gameState}
+						voiceState={voiceState}
+						playerColors={playerColors}
+						aleLuduMode={settings.aleLuduMode}
+						tuning={settings.aleLuduTuning ?? DEFAULT_ALE_LUDU_TUNING}
+					/>
+				)}
+			{settings.overlayPosition !== "hidden" && (
 				<AvatarOverlay
 					voiceState={voiceState}
 					gameState={gameState}
@@ -447,7 +548,7 @@ const Overlay: React.FC = function () {
 interface AvatarOverlayProps {
 	voiceState: VoiceState;
 	gameState: AmongUsState;
-	position: ISettings['overlayPosition'];
+	position: ISettings["overlayPosition"];
 	compactOverlay: boolean;
 	alwaysShowPlayers: boolean;
 	playerColors: string[][];
@@ -461,25 +562,37 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 	alwaysShowPlayers,
 	playerColors,
 }: AvatarOverlayProps) => {
-	const positionParse = position.replace('1', '');
+	const positionParse = position.replace("1", "");
 	const [nowTick, setNowTick] = useState(() => Date.now());
-	const [stablePlayers, setStablePlayers] = useState<Record<number, StableOverlayPlayer>>({});
+	const [stablePlayers, setStablePlayers] = useState<
+		Record<number, StableOverlayPlayer>
+	>({});
 	const previousLobbyCodeRef = useRef(gameState.lobbyCode);
 
 	const avatars: JSX.Element[] = [];
-	const isOnSide = positionParse == 'right' || positionParse == 'left';
-	const showName = isOnSide && (!compactOverlay || position === 'right1' || position === 'left1');
-	const classnames: string[] = ['overlay-wrapper'];
-	if (gameState.gameState == GameState.UNKNOWN || gameState.gameState == GameState.MENU) {
-		classnames.push('gamestate_menu');
+	const isOnSide = positionParse == "right" || positionParse == "left";
+	const showName =
+		isOnSide &&
+		(!compactOverlay || position === "right1" || position === "left1");
+	const classnames: string[] = ["overlay-wrapper"];
+	if (
+		gameState.gameState == GameState.UNKNOWN ||
+		gameState.gameState == GameState.MENU
+	) {
+		classnames.push("gamestate_menu");
 	} else {
-		classnames.push('gamestate_game');
-		classnames.push('overlay_postion_' + positionParse);
-		if (compactOverlay || position === 'right1' || position === 'left1' || position === 'top') {
-			classnames.push('compactoverlay');
+		classnames.push("gamestate_game");
+		classnames.push("overlay_postion_" + positionParse);
+		if (
+			compactOverlay ||
+			position === "right1" ||
+			position === "left1" ||
+			position === "top"
+		) {
+			classnames.push("compactoverlay");
 		}
-		if (position === 'left1' || position === 'right1' || position === 'top1') {
-			classnames.push('overlay_postion_' + position);
+		if (position === "left1" || position === "right1" || position === "top1") {
+			classnames.push("overlay_postion_" + position);
 		}
 	}
 
@@ -503,7 +616,10 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 	}, [gameState.lobbyCode]);
 
 	useEffect(() => {
-		if (gameState.gameState === GameState.MENU || gameState.gameState === GameState.UNKNOWN) {
+		if (
+			gameState.gameState === GameState.MENU ||
+			gameState.gameState === GameState.UNKNOWN
+		) {
 			setStablePlayers({});
 			return;
 		}
@@ -528,12 +644,21 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 				}
 
 				const slot = next[clientId];
-				const recentlyConnected = isClientVoiceStateFresh(slot.player, voiceState, nowTick);
+				const recentlyConnected = isClientVoiceStateFresh(
+					slot.player,
+					voiceState,
+					nowTick,
+				);
 				const recentlyTalking =
 					recentlyConnected &&
-					(Boolean(voiceState.otherTalking[clientId]) || (slot.player.isLocal && voiceState.localTalking));
+					(Boolean(voiceState.otherTalking[clientId]) ||
+						(slot.player.isLocal && voiceState.localTalking));
 
-				if (recentlyConnected || recentlyTalking || nowTick - slot.lastSeenAt <= OVERLAY_ROSTER_GRACE_MS) {
+				if (
+					recentlyConnected ||
+					recentlyTalking ||
+					nowTick - slot.lastSeenAt <= OVERLAY_ROSTER_GRACE_MS
+				) {
 					continue;
 				}
 
@@ -552,10 +677,16 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 	]);
 
 	const players = useMemo(() => {
-		const sourcePlayers = Object.values(stablePlayers).map((entry) => entry.player);
+		const sourcePlayers = Object.values(stablePlayers).map(
+			(entry) => entry.player,
+		);
 		if (sourcePlayers.length === 0) return null;
 		const playerss = sourcePlayers
-			.filter((o) => !voiceState.localIsAlive || !(voiceState.otherDead[o.clientId] && !o.isLocal))
+			.filter(
+				(o) =>
+					!voiceState.localIsAlive ||
+					!(voiceState.otherDead[o.clientId] && !o.isLocal),
+			)
 			.slice()
 			.sort((a, b) => {
 				if (
@@ -583,11 +714,10 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 
 	players?.forEach((player) => {
 		const talking =
-			!player.inVent && (voiceState.otherTalking[player.clientId] || (player.isLocal && voiceState.localTalking));
-		if (
-			!alwaysShowPlayers &&
-			!talking
-		) {
+			!player.inVent &&
+			(voiceState.otherTalking[player.clientId] ||
+				(player.isLocal && voiceState.localTalking));
+		if (!alwaysShowPlayers && !talking) {
 			return;
 		}
 		const connected = isClientVoiceStateFresh(player, voiceState, nowTick);
@@ -604,13 +734,20 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 						showborder={isOnSide && !compactOverlay}
 						muted={voiceState.muted && player.isLocal}
 						deafened={voiceState.deafened && player.isLocal}
-						connectionState={'connected'}
+						connectionState={"connected"}
 						talking={talking}
-						borderColor={!player.isLocal || player.shiftedColor == -1 ? '#2ecc71' : 'gray'}
+						borderColor={
+							!player.isLocal || player.shiftedColor == -1 ? "#2ecc71" : "gray"
+						}
 						isUsingRadio={voiceState.impostorRadioClientId == player.clientId}
-						isAlive={!voiceState.otherDead[player.clientId] || (player.isLocal && !player.isDead)}
+						isAlive={
+							!voiceState.otherDead[player.clientId] ||
+							(player.isLocal && !player.isDead)
+						}
 						size={100}
-						lookLeft={!(positionParse === 'left' || positionParse === 'bottom_left')}
+						lookLeft={
+							!(positionParse === "left" || positionParse === "bottom_left")
+						}
 						overflow={isOnSide && !showName}
 						showHat={true}
 						mod={voiceState.mod}
@@ -621,20 +758,25 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 					<span
 						className="playername"
 						style={{
-							opacity: (position === 'right1' || position === 'left1') && !talking ? 0 : 1,
+							opacity:
+								(position === "right1" || position === "left1") && !talking
+									? 0
+									: 1,
 						}}
 					>
 						<small>{player.name}</small>
 					</span>
 				)}
-			</div>
+			</div>,
 		);
 	});
 	if (avatars.length === 0) return null;
-	const playerContainerStyle = { '--size': 7.5 * (10 / avatars.length) + 'vh' } as playerContainerCss;
+	const playerContainerStyle = {
+		"--size": 7.5 * (10 / avatars.length) + "vh",
+	} as playerContainerCss;
 	return (
 		<div>
-			<div className={classnames.join(' ')} style={playerContainerStyle}>
+			<div className={classnames.join(" ")} style={playerContainerStyle}>
 				<div className="otherplayers">
 					<div className="players_container playerContainerBack">{avatars}</div>
 				</div>
@@ -664,33 +806,53 @@ function isVisibleAleLuduMeetingPlayer(player: Player): boolean {
 	return !player.disconnected && !player.bugged && !player.isDummy;
 }
 
-function isClientVoiceStateFresh(player: Player, voiceState: VoiceState, now: number): boolean {
+function isClientVoiceStateFresh(
+	player: Player,
+	voiceState: VoiceState,
+	now: number,
+): boolean {
 	if (player.isLocal) {
 		return true;
 	}
 
 	const connection = voiceState.clientConnections[player.clientId];
 	return Boolean(
-		(Boolean(connection?.lastSeenAt) && now - connection.lastSeenAt <= OVERLAY_ROSTER_GRACE_MS) ||
-			(Boolean(connection?.lastAudioAt) && now - connection.lastAudioAt <= OVERLAY_VOICE_ACTIVITY_GRACE_MS)
+		(Boolean(connection?.lastSeenAt) &&
+			now - connection.lastSeenAt <= OVERLAY_ROSTER_GRACE_MS) ||
+			(Boolean(connection?.lastAudioAt) &&
+				now - connection.lastAudioAt <= OVERLAY_VOICE_ACTIVITY_GRACE_MS),
 	);
 }
 
-function isMeetingPlayerTalking(player: Player, voiceState: VoiceState, now = Date.now()): boolean {
+function isMeetingPlayerTalking(
+	player: Player,
+	voiceState: VoiceState,
+	now = Date.now(),
+): boolean {
 	if (!player.isLocal && player.disconnected) {
 		return false;
 	}
-	const playerDead = player.isDead || Boolean(voiceState.otherDead[player.clientId]);
+	const playerDead =
+		player.isDead || Boolean(voiceState.otherDead[player.clientId]);
 	if (voiceState.localIsAlive && !player.isLocal && playerDead) {
 		return false;
 	}
 	if (!isClientVoiceStateFresh(player, voiceState, now)) {
 		return false;
 	}
-	return Boolean(voiceState.otherTalking[player.clientId] || (player.isLocal && voiceState.localTalking));
+	return Boolean(
+		voiceState.otherTalking[player.clientId] ||
+			(player.isLocal && voiceState.localTalking),
+	);
 }
 
-const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerColors, aleLuduMode, tuning }: MeetingHudProps) => {
+const MeetingHud: React.FC<MeetingHudProps> = ({
+	voiceState,
+	gameState,
+	playerColors,
+	aleLuduMode,
+	tuning,
+}: MeetingHudProps) => {
 	const [windowWidth, windowheight] = useWindowSize();
 	const meetingHudRef = useRef<HTMLDivElement | null>(null);
 	const tabletContainerRef = useRef<HTMLDivElement | null>(null);
@@ -702,8 +864,10 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 	// coloured card boxes jump to the wrong tiles for the rest of the meeting.
 	// MeetingHud unmounts when discussion ends, so the ref is re-initialised per meeting.
 	const frozenMeetingOrderRef = useRef<number[] | null>(null);
-	const aleLuduColumns = !gameState.oldMeetingHud && aleLuduMode ? ALE_LUDU_COLUMNS : 0;
-	const showAleLuduDebug = !gameState.oldMeetingHud && aleLuduMode && tuning.showDebug;
+	const aleLuduColumns =
+		!gameState.oldMeetingHud && aleLuduMode ? ALE_LUDU_COLUMNS : 0;
+	const showAleLuduDebug =
+		!gameState.oldMeetingHud && aleLuduMode && tuning.showDebug;
 	const [debugRects, setDebugRects] = useState<{
 		meetingHud: MeasuredRect | null;
 		tablet: MeasuredRect | null;
@@ -740,7 +904,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 
 		const resultH = resultW / (aleLuduMode ? 1.96 : 1.72);
 
-	return [resultW, resultH];
+		return [resultW, resultH];
 	}, [windowWidth, windowheight, gameState.oldMeetingHud, aleLuduMode]);
 
 	const players = useMemo(() => {
@@ -763,9 +927,19 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		// clearing the ref).
 		if (gameState.gameState === GameState.DISCUSSION) {
 			if (frozenMeetingOrderRef.current === null) {
-				frozenMeetingOrderRef.current = initialMeetingPlayerIds(gameState, src);
-			} else if (src.length > frozenMeetingOrderRef.current.length || hasMissingMeetingPlayers(frozenMeetingOrderRef.current, src)) {
-				frozenMeetingOrderRef.current = appendMissingMeetingPlayers(frozenMeetingOrderRef.current, src);
+				frozenMeetingOrderRef.current = initialMeetingPlayerIds(
+					gameState,
+					src,
+					aleLuduColumns > 0,
+				);
+			} else if (
+				src.length > frozenMeetingOrderRef.current.length ||
+				hasMissingMeetingPlayers(frozenMeetingOrderRef.current, src)
+			) {
+				frozenMeetingOrderRef.current = appendMissingMeetingPlayers(
+					frozenMeetingOrderRef.current,
+					src,
+				);
 			}
 
 			const frozen = frozenMeetingOrderRef.current;
@@ -805,7 +979,9 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		});
 	}, [gameState.gameState, gameState.players]);
 	const renderPlayers = players ?? [];
-	const aleLuduRenderPlayers = renderPlayers.filter(isVisibleAleLuduMeetingPlayer);
+	const aleLuduRenderPlayers = renderPlayers.filter(
+		isVisibleAleLuduMeetingPlayer,
+	);
 	// Stable card-slot index per player ID, captured at meeting start via frozenMeetingOrderRef.
 	// Using this instead of `renderPlayers.map`'s array index means that if TOU removes a player
 	// from gameState.players mid-meeting (guess / Jailor execute can drop the entry entirely,
@@ -837,23 +1013,34 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 			}));
 		}
 
-		const playerById = new Map(renderPlayers.map((player) => [player.id, player]));
+		const playerById = new Map(
+			renderPlayers.map((player) => [player.id, player]),
+		);
 		return order.map((id, index) => {
 			const player = playerById.get(id) ?? null;
 			return {
-				key: player ? `player-${player.id}` : `meetingPlaceholder-${id}-${index}`,
+				key: player
+					? `player-${player.id}`
+					: `meetingPlaceholder-${id}-${index}`,
 				player,
 				slotIndex: index,
 			};
 		});
 	})();
-	const canRenderMeetingHud = gameState.gameState === GameState.DISCUSSION && renderPlayers.length > 0;
-	const aleLuduSlotCount = aleLuduColumns > 0 ? aleLuduRenderPlayers.length : frozenMeetingOrderRef.current?.length ?? renderPlayers.length;
-	const aleLuduRows = aleLuduColumns > 0 ? Math.max(1, Math.ceil(aleLuduSlotCount / aleLuduColumns)) : 0;
+	const canRenderMeetingHud =
+		gameState.gameState === GameState.DISCUSSION && renderPlayers.length > 0;
+	const aleLuduSlotCount =
+		aleLuduColumns > 0
+			? aleLuduRenderPlayers.length
+			: (frozenMeetingOrderRef.current?.length ?? renderPlayers.length);
+	const aleLuduRows =
+		aleLuduColumns > 0
+			? Math.max(1, Math.ceil(aleLuduSlotCount / aleLuduColumns))
+			: 0;
 	const aleLuduContainerHeight =
 		aleLuduRows > 0
 			? `${aleLuduRows * tuning.rowHeight + Math.max(0, aleLuduRows - 1) * tuning.rowGap}%`
-			: '0%';
+			: "0%";
 
 	useEffect(() => {
 		if (!showAleLuduDebug) {
@@ -867,8 +1054,12 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 
 		const frameId = window.requestAnimationFrame(() => {
 			const nextOverlayRects: Record<number, MeasuredRect | null> = {};
-			for (const player of aleLuduColumns > 0 ? aleLuduRenderPlayers : renderPlayers) {
-				nextOverlayRects[player.id] = measureRect(overlayRefs.current[player.id] ?? null);
+			for (const player of aleLuduColumns > 0
+				? aleLuduRenderPlayers
+				: renderPlayers) {
+				nextOverlayRects[player.id] = measureRect(
+					overlayRefs.current[player.id] ?? null,
+				);
 			}
 
 			setDebugRects({
@@ -910,10 +1101,14 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		tabletWidthPct: tuning.tabletWidthPct,
 		tabletHeightPct: tuning.tabletHeightPct,
 	});
-	const debugGuidePlayers = aleLuduColumns > 0 ? aleLuduRenderPlayers : renderPlayers;
+	const debugGuidePlayers =
+		aleLuduColumns > 0 ? aleLuduRenderPlayers : renderPlayers;
 	const debugGuides = showAleLuduDebug
 		? debugGuidePlayers.map((player, index) => {
-				const cardIndex = aleLuduColumns > 0 ? index : frozenCardIndexById.get(player.id) ?? index;
+				const cardIndex =
+					aleLuduColumns > 0
+						? index
+						: (frozenCardIndexById.get(player.id) ?? index);
 				const fallbackStyle = getAleLuduCardStyle(cardIndex, tuning);
 
 				return (
@@ -921,26 +1116,26 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 						key={`debug-${player.id}`}
 						style={{
 							...fallbackStyle,
-							position: 'absolute',
-							boxSizing: 'border-box',
-							border: '3px solid rgba(255, 0, 255, 1)',
-							background: 'rgba(255, 0, 255, 0.35)',
-							pointerEvents: 'none',
+							position: "absolute",
+							boxSizing: "border-box",
+							border: "3px solid rgba(255, 0, 255, 1)",
+							background: "rgba(255, 0, 255, 0.35)",
+							pointerEvents: "none",
 							zIndex: 1,
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							color: 'white',
-							fontFamily: 'monospace',
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+							color: "white",
+							fontFamily: "monospace",
 							fontSize: 18,
-							fontWeight: 'bold',
-							textShadow: '0 0 4px #000, 0 0 4px #000',
+							fontWeight: "bold",
+							textShadow: "0 0 4px #000, 0 0 4px #000",
 						}}
 					>
 						#{index} {truncateName(player.name, 10)}
 					</div>
 				);
-		  })
+			})
 		: null;
 
 	const overlays = overlaySlots.map(({ player, slotIndex, key }) => {
@@ -949,14 +1144,18 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 				<div
 					key={key}
 					className={classes.playerContainer}
-					style={{ opacity: 0, pointerEvents: 'none' }}
+					style={{ opacity: 0, pointerEvents: "none" }}
 				/>
 			);
 		}
 
-		const color = playerColors[player.colorId] ? playerColors[player.colorId][0] : '#C51111';
+		const color = playerColors[player.colorId]
+			? playerColors[player.colorId][0]
+			: "#C51111";
 		const aleLuduCardStyle =
-			!gameState.oldMeetingHud && aleLuduMode ? getAleLuduCardStyle(slotIndex, tuning) : undefined;
+			!gameState.oldMeetingHud && aleLuduMode
+				? getAleLuduCardStyle(slotIndex, tuning)
+				: undefined;
 		const talking = isMeetingPlayerTalking(player, voiceState);
 
 		return (
@@ -969,11 +1168,11 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 				style={{
 					...aleLuduCardStyle,
 					opacity: talking ? 1 : 0,
-					border: 'solid',
-					borderWidth: '2px',
-					borderColor: '#00000037',
+					border: "solid",
+					borderWidth: "2px",
+					borderColor: "#00000037",
 					boxShadow: `0 0 ${height / 100}px ${height / 100}px ${color}`,
-					transition: 'opacity 400ms',
+					transition: "opacity 400ms",
 				}}
 			/>
 		);
@@ -988,24 +1187,24 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 				style={
 					showAleLuduDebug
 						? {
-								outline: '2px dashed rgba(255, 86, 86, 0.9)',
-						  }
+								outline: "2px dashed rgba(255, 86, 86, 0.9)",
+							}
 						: undefined
 				}
 			>
 				{showAleLuduDebug && (
 					<div
 						style={{
-							position: 'absolute',
+							position: "absolute",
 							top: -18,
 							left: 0,
-							padding: '1px 6px',
-							background: 'rgba(0,0,0,0.82)',
-							color: '#ff8f8f',
-							fontFamily: 'monospace',
+							padding: "1px 6px",
+							background: "rgba(0,0,0,0.82)",
+							color: "#ff8f8f",
+							fontFamily: "monospace",
 							fontSize: 11,
 							lineHeight: 1.2,
-							pointerEvents: 'none',
+							pointerEvents: "none",
 							zIndex: 10,
 						}}
 					>
@@ -1018,24 +1217,24 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 					style={
 						showAleLuduDebug
 							? {
-									outline: '2px dashed rgba(255, 224, 102, 0.92)',
-							  }
+									outline: "2px dashed rgba(255, 224, 102, 0.92)",
+								}
 							: undefined
 					}
 				>
 					{showAleLuduDebug && (
 						<div
 							style={{
-								position: 'absolute',
+								position: "absolute",
 								top: -18,
 								left: 0,
-								padding: '1px 6px',
-								background: 'rgba(0,0,0,0.82)',
-								color: '#ffe066',
-								fontFamily: 'monospace',
+								padding: "1px 6px",
+								background: "rgba(0,0,0,0.82)",
+								color: "#ffe066",
+								fontFamily: "monospace",
 								fontSize: 11,
 								lineHeight: 1.2,
-								pointerEvents: 'none',
+								pointerEvents: "none",
 								zIndex: 10,
 							}}
 						>
@@ -1049,26 +1248,28 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 			{showAleLuduDebug && (
 				<div
 					style={{
-						position: 'fixed',
+						position: "fixed",
 						right: 10,
 						bottom: 10,
 						width: 420,
-						maxHeight: '42vh',
-						overflow: 'auto',
+						maxHeight: "42vh",
+						overflow: "auto",
 						padding: 10,
-						background: 'rgba(0, 0, 0, 0.88)',
-						color: '#f5f7fa',
-						border: '1px solid rgba(127, 252, 255, 0.35)',
-						fontFamily: 'monospace',
+						background: "rgba(0, 0, 0, 0.88)",
+						color: "#f5f7fa",
+						border: "1px solid rgba(127, 252, 255, 0.35)",
+						fontFamily: "monospace",
 						fontSize: 11,
 						lineHeight: 1.35,
-						pointerEvents: 'none',
+						pointerEvents: "none",
 						zIndex: 9999,
-						whiteSpace: 'pre-wrap',
+						whiteSpace: "pre-wrap",
 					}}
 				>
 					<div>ALELUDU DEBUG</div>
-					<div>viewport: {windowWidth}x{windowheight}</div>
+					<div>
+						viewport: {windowWidth}x{windowheight}
+					</div>
 					<div>meetingHud: {formatRect(debugRects.meetingHud)}</div>
 					<div>tablet: {formatRect(debugRects.tablet)}</div>
 					<div>players: {renderPlayers.length}</div>
@@ -1081,8 +1282,11 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 
 							return (
 								<div key={`debug-line-${player.id}`}>
-									{index.toString().padStart(2, '0')} {truncateName(player.name, 16)} p{player.id}/c{player.clientId}{' '}
-									dead={player.isDead ? 1 : 0} talk={talking ? 1 : 0} box={formatRect(debugRects.overlays[player.id] ?? null)}
+									{index.toString().padStart(2, "0")}{" "}
+									{truncateName(player.name, 16)} p{player.id}/c
+									{player.clientId} dead={player.isDead ? 1 : 0} talk=
+									{talking ? 1 : 0} box=
+									{formatRect(debugRects.overlays[player.id] ?? null)}
 								</div>
 							);
 						})}
@@ -1093,6 +1297,6 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 	);
 };
 
-ReactDOM.render(<Overlay />, document.getElementById('app'));
+ReactDOM.render(<Overlay />, document.getElementById("app"));
 
 export default Overlay;
