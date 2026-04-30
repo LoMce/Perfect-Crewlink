@@ -232,6 +232,13 @@ check(
 		/pan\.refDistance = AUDIO_NEAR_FIELD_DISTANCE/.test(voice),
 );
 check(
+	"source_audio_smooths_muffle_filter",
+	/setSmoothedAudioParam\(muffle\.frequency/.test(voice) &&
+		/setSmoothedAudioParam\(muffle\.Q/.test(voice) &&
+		!/muffle\.frequency\.value =/.test(voice) &&
+		!/muffle\.Q\.value =/.test(voice),
+);
+check(
 	"source_voice_activity_requires_mapped_socket",
 	/const mappedClient = socketClientsRef\.current\[data\.socketId\]/.test(
 		voice,
