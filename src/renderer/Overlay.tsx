@@ -301,8 +301,16 @@ function initialMeetingPlayerIds(
 	gameState: AmongUsState,
 	players: Player[],
 	aleLuduMode: boolean,
+	meetingStartPlayers?: Player[] | null,
 ): number[] {
-	if (aleLuduMode || gameState.oldGameState !== GameState.TASKS) {
+	if (
+		aleLuduMode &&
+		gameState.oldGameState === GameState.TASKS &&
+		meetingStartPlayers?.length
+	) {
+		return sortedMeetingPlayerIds(meetingStartPlayers);
+	}
+	if (gameState.oldGameState !== GameState.TASKS) {
 		return players.map((player) => player.id);
 	}
 
@@ -404,6 +412,7 @@ const Overlay: React.FC = function () {
 			readOverlayState<string[][]>(OVERLAY_STATE_KEYS.playerColors) ??
 			DEFAULT_PLAYERCOLORS,
 	);
+	const lastTaskPlayersRef = useRef<Player[] | null>(null);
 
 	useEffect(() => {
 		let initRequests = 0;
@@ -510,6 +519,20 @@ const Overlay: React.FC = function () {
 		};
 	}, []);
 
+	useEffect(() => {
+		if (gameState.gameState === GameState.TASKS && gameState.players?.length) {
+			lastTaskPlayersRef.current = gameState.players.map((player) => ({
+				...player,
+			}));
+		} else if (
+			gameState.gameState === GameState.LOBBY ||
+			gameState.gameState === GameState.MENU ||
+			gameState.gameState === GameState.UNKNOWN
+		) {
+			lastTaskPlayersRef.current = null;
+		}
+	}, [gameState.gameState, gameState.players]);
+
 	if (
 		!settings ||
 		!voiceState ||
@@ -529,6 +552,7 @@ const Overlay: React.FC = function () {
 						playerColors={playerColors}
 						aleLuduMode={settings.aleLuduMode}
 						tuning={settings.aleLuduTuning ?? DEFAULT_ALE_LUDU_TUNING}
+						meetingStartPlayers={lastTaskPlayersRef.current}
 					/>
 				)}
 			{settings.overlayPosition !== "hidden" && (
@@ -794,6 +818,7 @@ interface MeetingHudProps {
 	playerColors: string[][];
 	aleLuduMode: boolean;
 	tuning: AleLuduTuning;
+	meetingStartPlayers?: Player[] | null;
 }
 
 interface MeetingOverlaySlot {
@@ -852,6 +877,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 	playerColors,
 	aleLuduMode,
 	tuning,
+	meetingStartPlayers,
 }: MeetingHudProps) => {
 	const [windowWidth, windowheight] = useWindowSize();
 	const meetingHudRef = useRef<HTMLDivElement | null>(null);
@@ -931,6 +957,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 					gameState,
 					src,
 					aleLuduColumns > 0,
+					meetingStartPlayers,
 				);
 			} else if (
 				src.length > frozenMeetingOrderRef.current.length ||
@@ -977,7 +1004,12 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 			}
 			return a.id - b.id;
 		});
-	}, [gameState.gameState, gameState.players]);
+	}, [
+		aleLuduColumns,
+		gameState.gameState,
+		gameState.players,
+		meetingStartPlayers,
+	]);
 	const renderPlayers = players ?? [];
 	const aleLuduRenderPlayers = renderPlayers.filter(
 		isVisibleAleLuduMeetingPlayer,
