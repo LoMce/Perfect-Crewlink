@@ -113,8 +113,8 @@ function expectedMeetingTalking(player, voiceState, now = Date.now()) {
 	);
 }
 
-function topDownPan(me, other) {
-	return [other.x - me.x, 0, -(other.y - me.y)];
+function betterCrewLinkPan(me, other) {
+	return [other.x - me.x, other.y - me.y, -0.5];
 }
 
 function smoothValue(current, target, time, timeConstant) {
@@ -255,20 +255,20 @@ check(
 
 check(
 	"audio_right_maps_to_positive_x",
-	JSON.stringify(topDownPan({ x: 0, y: 0 }, { x: 2, y: 0 })) ===
-		JSON.stringify([2, 0, 0]),
+	JSON.stringify(betterCrewLinkPan({ x: 0, y: 0 }, { x: 2, y: 0 })) ===
+		JSON.stringify([2, 0, -0.5]),
 );
 check(
-	"audio_up_maps_to_negative_z_no_vertical_y",
-	JSON.stringify(topDownPan({ x: 0, y: 0 }, { x: 0, y: 3 })) ===
-		JSON.stringify([0, 0, -3]),
+	"audio_up_maps_to_positive_y_fixed_depth",
+	JSON.stringify(betterCrewLinkPan({ x: 0, y: 0 }, { x: 0, y: 3 })) ===
+		JSON.stringify([0, 3, -0.5]),
 );
 check(
-	"audio_diagonal_preserves_distance",
+	"audio_diagonal_preserves_bettercrewlink_xy_distance",
 	Math.hypot(
 		...[
-			topDownPan({ x: 1, y: 1 }, { x: 4, y: 5 })[0],
-			topDownPan({ x: 1, y: 1 }, { x: 4, y: 5 })[2],
+			betterCrewLinkPan({ x: 1, y: 1 }, { x: 4, y: 5 })[0],
+			betterCrewLinkPan({ x: 1, y: 1 }, { x: 4, y: 5 })[1],
 		],
 	) === 5,
 );
@@ -317,35 +317,36 @@ check(
 		!/if \(aleLuduColumns > 0 \|\| !order\)/.test(overlay),
 );
 check(
-	"source_audio_uses_top_down_xz_axes",
+	"source_audio_uses_bettercrewlink_xy_fixed_depth_axes",
 	/pan\.positionX/.test(voice) &&
 		/pan\.positionY/.test(voice) &&
 		/pan\.positionZ/.test(voice) &&
-		/-panPos\[1\]/.test(voice),
+		/setSmoothedAudioParam\(pan\.positionY, panPos\[1\]/.test(voice) &&
+		/setSmoothedAudioParam\(pan\.positionZ, -0\.5/.test(voice),
 );
 check(
 	"source_audio_smooths_pan_and_gain",
 	/AUDIO_PARAM_SMOOTHING_SECONDS/.test(voice) &&
 		/function setSmoothedAudioParam/.test(voice) &&
 		/setSmoothedAudioParam\(pan\.positionX/.test(voice) &&
-		/setSmoothedAudioParam\(pan\.positionY, 0/.test(voice) &&
-		/setSmoothedAudioParam\(pan\.positionZ, -panPos\[1\]/.test(voice) &&
+		/setSmoothedAudioParam\(pan\.positionY, panPos\[1\]/.test(voice) &&
+		/setSmoothedAudioParam\(pan\.positionZ, -0\.5/.test(voice) &&
 		/function setSmoothedGain/.test(voice) &&
 		/setSmoothedGain\(audio\.gain, gain\)/.test(voice) &&
 		/setSmoothedGain\(audio\.gain, 0\)/.test(voice),
 );
 check(
-	"source_audio_uses_hrtf_panning",
-	/pan\.panningModel = ['"]HRTF['"]/.test(voice),
+	"source_audio_uses_bettercrewlink_equalpower_panning",
+	/pan\.panningModel = ['"]equalpower['"]/.test(voice) &&
+		!/pan\.panningModel = ['"]HRTF['"]/.test(voice),
 );
 check(
 	"source_audio_uses_effective_maxdistance",
-	/pan\.maxDistance = maxdistance/.test(voice),
+	/pan\.maxDistance = maxdistance;/.test(voice),
 );
 check(
-	"source_audio_uses_near_field_ref_distance",
-	/AUDIO_NEAR_FIELD_DISTANCE/.test(voice) &&
-		/pan\.refDistance = AUDIO_NEAR_FIELD_DISTANCE/.test(voice),
+	"source_audio_uses_bettercrewlink_ref_distance",
+	/pan\.refDistance = 0\.1/.test(voice),
 );
 check(
 	"source_audio_smooths_muffle_filter",
@@ -373,10 +374,10 @@ check(
 		!/setSmoothedAudioParam\(muffle\.Q, 10/.test(voice),
 );
 check(
-	"source_audio_directional_focus_configured",
-	/AUDIO_DIRECTIONAL_FOCUS/.test(voice) &&
-		/AUDIO_DISTANCE_ROLLOFF_FACTOR/.test(voice) &&
-		/pan\.rolloffFactor = AUDIO_DISTANCE_ROLLOFF_FACTOR/.test(voice),
+	"source_audio_not_overfocused_directionally",
+	!/AUDIO_DIRECTIONAL_FOCUS/.test(voice) &&
+		/pan\.rolloffFactor = 1/.test(voice) &&
+		!/maxdistance \* AUDIO_DIRECTIONAL_FOCUS/.test(voice),
 );
 check(
 	"source_audio_rebuilds_single_effect_chain",
