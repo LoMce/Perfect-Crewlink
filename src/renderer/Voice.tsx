@@ -1304,15 +1304,16 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		});
 
 		socket.on('VAD', (data: { activity: boolean; client: Client; socketId: string }) => {
-			if (isStaleClientSocketUpdate(data.client.clientId, data.socketId)) {
+			const vadClientId = socketClientsRef.current[data.socketId]?.clientId ?? data.client.clientId;
+			if (isStaleClientSocketUpdate(vadClientId, data.socketId)) {
 				return;
 			}
 
 			setOtherVAD((old) => ({
 				...old,
-				[data.client.clientId]: data.activity,
+				[vadClientId]: data.activity,
 			}));
-			upsertClientConnection(data.client.clientId, {
+			upsertClientConnection(vadClientId, {
 				socketId: data.socketId,
 				connected: true,
 				lastSeenAt: Date.now(),
