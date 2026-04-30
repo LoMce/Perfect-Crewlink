@@ -660,6 +660,10 @@ interface MeetingOverlaySlot {
 	player: Player | null;
 }
 
+function isVisibleAleLuduMeetingPlayer(player: Player): boolean {
+	return !player.disconnected && !player.bugged && !player.isDummy;
+}
+
 function isClientVoiceStateFresh(player: Player, voiceState: VoiceState, now: number): boolean {
 	if (player.isLocal) {
 		return true;
@@ -801,6 +805,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		});
 	}, [gameState.gameState, gameState.players]);
 	const renderPlayers = players ?? [];
+	const aleLuduRenderPlayers = renderPlayers.filter(isVisibleAleLuduMeetingPlayer);
 	// Stable card-slot index per player ID, captured at meeting start via frozenMeetingOrderRef.
 	// Using this instead of `renderPlayers.map`'s array index means that if TOU removes a player
 	// from gameState.players mid-meeting (guess / Jailor execute can drop the entry entirely,
@@ -817,7 +822,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 	const overlaySlots: MeetingOverlaySlot[] = (() => {
 		const order = frozenMeetingOrderRef.current;
 		if (aleLuduColumns > 0) {
-			return renderPlayers.map((player, index) => ({
+			return aleLuduRenderPlayers.map((player, index) => ({
 				key: `player-${player.id}`,
 				player,
 				slotIndex: index,
@@ -843,7 +848,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		});
 	})();
 	const canRenderMeetingHud = gameState.gameState === GameState.DISCUSSION && renderPlayers.length > 0;
-	const aleLuduSlotCount = frozenMeetingOrderRef.current?.length ?? renderPlayers.length;
+	const aleLuduSlotCount = aleLuduColumns > 0 ? aleLuduRenderPlayers.length : frozenMeetingOrderRef.current?.length ?? renderPlayers.length;
 	const aleLuduRows = aleLuduColumns > 0 ? Math.max(1, Math.ceil(aleLuduSlotCount / aleLuduColumns)) : 0;
 	const aleLuduContainerHeight =
 		aleLuduRows > 0
@@ -862,7 +867,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 
 		const frameId = window.requestAnimationFrame(() => {
 			const nextOverlayRects: Record<number, MeasuredRect | null> = {};
-			for (const player of renderPlayers) {
+			for (const player of aleLuduColumns > 0 ? aleLuduRenderPlayers : renderPlayers) {
 				nextOverlayRects[player.id] = measureRect(overlayRefs.current[player.id] ?? null);
 			}
 
@@ -876,7 +881,17 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		return () => {
 			window.cancelAnimationFrame(frameId);
 		};
-	}, [showAleLuduDebug, renderPlayers, windowWidth, windowheight, aleLuduContainerHeight, voiceState.localTalking, voiceState.otherTalking]);
+	}, [
+		showAleLuduDebug,
+		aleLuduColumns,
+		aleLuduRenderPlayers,
+		renderPlayers,
+		windowWidth,
+		windowheight,
+		aleLuduContainerHeight,
+		voiceState.localTalking,
+		voiceState.otherTalking,
+	]);
 
 	const classes = useStyles({
 		width: width,
@@ -895,8 +910,9 @@ const MeetingHud: React.FC<MeetingHudProps> = ({ voiceState, gameState, playerCo
 		tabletWidthPct: tuning.tabletWidthPct,
 		tabletHeightPct: tuning.tabletHeightPct,
 	});
+	const debugGuidePlayers = aleLuduColumns > 0 ? aleLuduRenderPlayers : renderPlayers;
 	const debugGuides = showAleLuduDebug
-		? renderPlayers.map((player, index) => {
+		? debugGuidePlayers.map((player, index) => {
 				const cardIndex = aleLuduColumns > 0 ? index : frozenCardIndexById.get(player.id) ?? index;
 				const fallbackStyle = getAleLuduCardStyle(cardIndex, tuning);
 
