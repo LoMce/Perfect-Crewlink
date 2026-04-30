@@ -219,6 +219,10 @@ check(
 		/setSmoothedGain\(audio\.gain, 0\)/.test(voice),
 );
 check(
+	"source_audio_uses_hrtf_panning",
+	/pan\.panningModel = ['"]HRTF['"]/.test(voice),
+);
+check(
 	"source_voice_activity_requires_mapped_socket",
 	/const mappedClient = socketClientsRef\.current\[data\.socketId\]/.test(
 		voice,
