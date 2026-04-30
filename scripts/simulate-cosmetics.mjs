@@ -57,17 +57,37 @@ check(
 	/replace\(\/skin\$\//.test(cosmetics) ||
 		/replace\(\/skins\?\$\//.test(cosmetics),
 );
+const tsCurrentOutfitStart = gameReader.indexOf(
+	"} else if (key === currentOutfit) {",
+);
+const tsCurrentOutfitBranch =
+	tsCurrentOutfitStart >= 0
+		? gameReader.slice(
+				tsCurrentOutfitStart,
+				gameReader.indexOf("\n\t\t\t});", tsCurrentOutfitStart),
+			)
+		: "";
 check(
 	"source_current_outfit_cosmetics_ts",
-	/else if \(key === currentOutfit\) \{[\s\S]*?data\.hat[\s\S]*?data\.skin[\s\S]*?data\.visor/.test(
-		gameReader,
-	),
+	/data\.hat/.test(tsCurrentOutfitBranch) &&
+		/data\.skin/.test(tsCurrentOutfitBranch) &&
+		/data\.visor/.test(tsCurrentOutfitBranch),
 );
+const rustCurrentOutfitStart = gameSession.indexOf(
+	"} else if key == current_outfit as i32 {",
+);
+const rustCurrentOutfitBranch =
+	rustCurrentOutfitStart >= 0
+		? gameSession.slice(
+				rustCurrentOutfitStart,
+				gameSession.indexOf("\n            });", rustCurrentOutfitStart),
+			)
+		: "";
 check(
 	"source_current_outfit_cosmetics_rust",
-	/else if key == current_outfit as i32 \{[\s\S]*?parsed\.hat[\s\S]*?parsed\.skin[\s\S]*?parsed\.visor/.test(
-		gameSession,
-	),
+	/parsed\.hat/.test(rustCurrentOutfitBranch) &&
+		/parsed\.skin/.test(rustCurrentOutfitBranch) &&
+		/parsed\.visor/.test(rustCurrentOutfitBranch),
 );
 
 console.log(`METRIC cosmetic_failures=${failures}`);
