@@ -1419,6 +1419,15 @@ impl AmongUsReader {
                         .read_u32(outfit_ptr, &reader.offsets.player.outfit.color_id)
                         .map(|value| value as i32)
                         .unwrap_or(-1);
+                    if let Ok(hat_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.hat_id) {
+                        parsed.hat = reader.read_string(hat_ptr, 200).unwrap_or_default();
+                    }
+                    if let Ok(skin_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.skin_id) {
+                        parsed.skin = reader.read_string(skin_ptr, 200).unwrap_or_default();
+                    }
+                    if let Ok(visor_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.visor_id) {
+                        parsed.visor = reader.read_string(visor_ptr, 200).unwrap_or_default();
+                    }
                 }
             });
 
