@@ -48,7 +48,7 @@ check(
 check(
 	"source_cosmetics_prefers_active_mod_before_vanilla_fallback",
 	/function getCosmeticModSearchOrder/.test(cosmetics) &&
-		/\[modType, 'NONE'\]/.test(cosmetics),
+		/\[modType, ['"]NONE['"]\]/.test(cosmetics),
 );
 check(
 	"source_cosmetics_handles_tou_mira_skin_suffix_aliases",
