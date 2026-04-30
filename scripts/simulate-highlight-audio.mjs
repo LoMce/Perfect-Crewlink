@@ -364,17 +364,19 @@ check(
 		/!player\.disconnected/.test(overlay) &&
 		/!player\.bugged/.test(overlay) &&
 		/!player\.isDummy/.test(overlay) &&
-		/renderPlayers\.filter\(isVisibleAleLuduMeetingPlayer\)/.test(overlay),
+		/renderPlayers\s*\.\s*filter\(\s*isVisibleAleLuduMeetingPlayer\s*,?\s*\)/.test(
+			overlay,
+		),
 );
 check(
 	"source_meeting_aleludu_initial_order_uses_reader_order",
-	/function initialMeetingPlayerIds\(gameState: AmongUsState, players: Player\[], aleLuduMode/.test(
+	/function initialMeetingPlayerIds\(\s*gameState: AmongUsState,\s*players: Player\[\],\s*aleLuduMode: boolean,?\s*\)/.test(
 		overlay,
 	) &&
 		/if \(aleLuduMode \|\| gameState\.oldGameState !== GameState\.TASKS\)/.test(
 			overlay,
 		) &&
-		/initialMeetingPlayerIds\(gameState, src, aleLuduColumns > 0\)/.test(
+		/initialMeetingPlayerIds\(\s*gameState,\s*src,\s*aleLuduColumns > 0,?\s*\)/.test(
 			overlay,
 		),
 );
