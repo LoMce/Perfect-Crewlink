@@ -19,7 +19,6 @@ export interface ISettings {
 	overlayPosition: string;
 	enableOverlay: boolean;
 	meetingOverlay: boolean;
-	aleLuduMode: boolean;
 	startMuted: boolean;
 	startDeafened: boolean;
 
@@ -37,7 +36,6 @@ export interface ISettings {
 	echoCancellation: boolean;
 	noiseSuppression: boolean;
 	oldSampleDebug: boolean;
-	debugMode: boolean;
 
 	enableSpatialAudio: boolean;
 	oldSampleDebug: boolean;
@@ -47,7 +45,6 @@ export interface ISettings {
 
 	launchPlatform: GamePlatform | string;
 	customPlatforms: GamePlatformMap;
-
 }
 
 export interface ILobbySettings {

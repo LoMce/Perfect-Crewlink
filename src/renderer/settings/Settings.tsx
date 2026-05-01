@@ -908,13 +908,6 @@ const Settings: React.FC<SettingsProps> = function ({ t, open, onClose }: Settin
 								onChange={(_, checked: boolean) => setSettings('meetingOverlay', checked)}
 								control={<Checkbox />}
 							/>
-							<FormControlLabel
-								className={classes.formLabel}
-								label={t('settings.overlay.aleludu_mode')}
-								checked={settings.aleLuduMode}
-								onChange={(_, checked: boolean) => setSettings('aleLuduMode', checked)}
-								control={<Checkbox />}
-							/>
 							<TextField
 								fullWidth
 								select
@@ -1131,16 +1124,6 @@ const Settings: React.FC<SettingsProps> = function ({ t, open, onClose }: Settin
 					</DisabledTooltip>
 				</div>
 				<Divider />
-				<Typography variant="h6">Debug</Typography>
-				<div>
-					<FormControlLabel
-						className={classes.formLabel}
-						label="Debug mode"
-						checked={settings.debugMode}
-						onChange={(_, checked: boolean) => setSettings('debugMode', checked)}
-						control={<Checkbox />}
-					/>
-				</div>
 				<Alert className={classes.alert} severity="info" style={{ display: unsaved ? undefined : 'none' }}>
 					{t('buttons.exit')}
 				</Alert>

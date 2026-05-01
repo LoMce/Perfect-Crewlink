@@ -103,11 +103,9 @@ function sortedMeetingPlayerIds(players: Player[]): number[] {
 function initialMeetingPlayerIds(
 	gameState: AmongUsState,
 	players: Player[],
-	aleLuduMode: boolean,
 	meetingStartPlayers?: Player[] | null,
 ): number[] {
 	if (
-		aleLuduMode &&
 		gameState.oldGameState === GameState.TASKS &&
 		meetingStartPlayers?.length
 	) {
@@ -632,13 +630,13 @@ interface MeetingOverlaySlot {
 	player: Player | null;
 }
 
-function isVisibleAleLuduMeetingPlayer(player: Player): boolean {
+function isVisibleMeetingPlayer(player: Player): boolean {
 	return !player.disconnected && !player.bugged && !player.isDummy;
 }
 
 function visibleMeetingSlotPlayer(player: Player | null): Player | null {
 	if (!player) return null;
-	return isVisibleAleLuduMeetingPlayer(player) ? player : null;
+	return isVisibleMeetingPlayer(player) ? player : null;
 }
 
 function isClientVoiceStateFresh(
@@ -704,13 +702,9 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		if (!gameState.players || gameState.players.length === 0) return null;
 		const src = gameState.players;
 
-		// AleLudu's MeetingHudBehaviour orders targets with
-		//   playerStates.OrderBy(p => p.AmDead)
-		// which is a *stable* sort run once when the meeting Start()s — alive players
-		// first in their original playerStates index order, then dead players in their
-		// original order. The Rust reader walks GameData.Instance.AllPlayers
-		// sequentially, so gameState.players[i] matches meetingHud.playerStates[i].
-		//
+		// The meeting tablet orders alive players before dead players when the meeting
+		// starts. Rust meetingHud.cards is preferred below, but this frozen fallback
+		// keeps the generic overlay stable when direct card data is unavailable.
 		// CRITICAL: the vanilla tablet does NOT re-sort when someone dies mid-meeting
 		// (guess / Jailor execute / etc.). The dead player keeps their slot, they just
 		// get the "DEAD" overlay. If we re-sort on every render the way we used to, the
@@ -723,7 +717,6 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 				frozenMeetingOrderRef.current = initialMeetingPlayerIds(
 					gameState,
 					src,
-					false,
 					meetingStartPlayers,
 				);
 			} else if (

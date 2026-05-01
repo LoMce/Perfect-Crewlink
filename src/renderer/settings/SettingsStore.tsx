@@ -31,8 +31,6 @@ const defaultSettings: ISettings = {
 	overlayPosition: 'right',
 	enableOverlay: true,
 	meetingOverlay: true,
-	aleLuduMode: false,
-	debugMode: false,
 	startMuted: false,
 	startDeafened: false,
 	localLobbySettings: {
