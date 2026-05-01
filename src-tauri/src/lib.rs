@@ -2,6 +2,7 @@ mod assets;
 mod game_session;
 mod hotkeys;
 
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine as _};
 use game_session::{load_region_aliases, AmongUsState, GameSessionManager, GameSessionStatus};
 use hotkeys::{HotkeyConfig, HotkeyManager};
 use serde::{Deserialize, Serialize};
@@ -10,7 +11,7 @@ use std::sync::{
     Arc,
 };
 use std::time::Duration;
-use tauri::{AppHandle, Manager, PhysicalSize, State, WebviewWindow, WindowEvent};
+use tauri::{AppHandle, Manager, PhysicalSize, State, UserAttentionType, WebviewWindow, WindowEvent};
 
 const OFFSETS_BASE_URL: &str = "https://raw.githubusercontent.com/OhMyGuus/BetterCrewlink-Offsets/main";
 const OFFSETS_FALLBACK_URL: &str = "https://cdn.jsdelivr.net/gh/OhMyGuus/BetterCrewlink-Offsets@main";
@@ -128,6 +129,30 @@ fn request_mod(session: State<'_, GameSessionManager>) -> String {
 #[tauri::command]
 fn generate_avatar_base(color: String, shadow: String, is_alive: bool) -> Result<String, String> {
     assets::generate_base_data_url(&color, &shadow, is_alive)
+}
+
+#[tauri::command]
+fn read_audio_file_as_data_url(path: String) -> Result<String, String> {
+    let extension = std::path::Path::new(&path)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    let mime = match extension.as_str() {
+        "mp3" => "audio/mpeg",
+        "wav" => "audio/wav",
+        "ogg" | "oga" => "audio/ogg",
+        "flac" => "audio/flac",
+        "aac" => "audio/aac",
+        "m4a" => "audio/mp4",
+        "webm" => "audio/webm",
+        _ => "audio/mpeg",
+    };
+    let bytes = std::fs::read(path).map_err(|error| error.to_string())?;
+    Ok(format!(
+        "data:{mime};base64,{}",
+        BASE64_STANDARD.encode(bytes)
+    ))
 }
 
 #[tauri::command]
@@ -252,6 +277,17 @@ fn show_window(app: AppHandle, label: Option<String>) -> Result<(), String> {
         .get_webview_window(window_label.as_str())
         .ok_or_else(|| format!("Window not found: {window_label}"))?;
     window.show().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn request_user_attention(app: AppHandle, label: Option<String>) -> Result<(), String> {
+    let window_label = label.unwrap_or_else(|| "main".to_string());
+    let window = app
+        .get_webview_window(window_label.as_str())
+        .ok_or_else(|| format!("Window not found: {window_label}"))?;
+    window
+        .request_user_attention(Some(UserAttentionType::Informational))
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -545,6 +581,7 @@ pub fn run() {
             get_region_aliases,
             request_mod,
             generate_avatar_base,
+            read_audio_file_as_data_url,
             fetch_offset_lookup,
             fetch_offsets,
             reset_hotkeys,
@@ -556,6 +593,7 @@ pub fn run() {
             minimize_window,
             hide_window,
             show_window,
+            request_user_attention,
             set_always_on_top
         ])
         .run(tauri::generate_context!())

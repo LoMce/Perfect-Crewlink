@@ -16,6 +16,7 @@ export interface ISettings {
 	compactOverlay: boolean;
 	alwaysShowOverlayPlayers: boolean;
 	ignoreIncompatibleLobbyBrowserMods: boolean;
+	lobbyNotificationSoundPath: string;
 	overlayPosition: string;
 	enableOverlay: boolean;
 	meetingOverlay: boolean;

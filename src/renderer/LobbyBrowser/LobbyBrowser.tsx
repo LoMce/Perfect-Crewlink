@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import withStyles from '@mui/styles/withStyles';
 import makeStyles from '@mui/styles/makeStyles';
 import Table from '@mui/material/Table';
@@ -9,12 +9,14 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { bridge } from '../bridge';
-import { IpcMessages } from '../../common/ipc-messages';
+import { IpcHandlerMessages, IpcMessages } from '../../common/ipc-messages';
 import io, { Socket } from 'socket.io-client';
 import i18next from 'i18next';
 import { IconButton, Tooltip } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import languages from '../language/languages';
 import { PublicLobbyMap, PublicLobby } from '../../common/PublicLobby';
 import { modList, ModsType } from '../../common/Mods';
@@ -22,6 +24,7 @@ import { GameState } from '../../common/AmongUsState';
 import { getRegionAliases } from '../../common/tauri-game';
 import { resolveRegionLabel } from '../../common/regions';
 import SettingsStore from '../settings/SettingsStore';
+import { playLobbyNotificationSound } from '../lobbyNotificationSound';
 
 const serverUrl = SettingsStore.get('serverURL', 'https://bettercrewl.ink/');
 const language = SettingsStore.get('language', 'en');
@@ -89,6 +92,11 @@ const useStyles = makeStyles({
 		textTransform: 'uppercase',
 		letterSpacing: '0.08em',
 	},
+	codeButtons: {
+		display: 'flex',
+		alignItems: 'flex-start',
+		gap: '2px',
+	},
 	copyButton: {
 		padding: '4px',
 		marginTop: '-2px',
@@ -121,6 +129,40 @@ function getServerLabel(server: string, regionAliases: Record<string, string>): 
 	return resolveRegionLabel(server, regionAliases);
 }
 
+type LobbyNotificationPermission = NotificationPermission | 'unsupported';
+
+function getNotificationPermission(): LobbyNotificationPermission {
+	if (typeof window === 'undefined' || !('Notification' in window)) {
+		return 'unsupported';
+	}
+	return Notification.permission;
+}
+
+function getStoredStringSetting(key: string, fallback: string): string {
+	try {
+		const storedSettings = JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY) ?? '{}') as Record<string, unknown>;
+		const value = storedSettings[key];
+		return typeof value === 'string' ? value : fallback;
+	} catch {
+		return fallback;
+	}
+}
+
+function isBaseLobbyJoinable(lobby: PublicLobby): boolean {
+	return lobby.gameState === GameState.LOBBY && lobby.current_players < lobby.max_players;
+}
+
+function getLobbyNotificationBody(lobby: PublicLobby, preview?: LobbyCodePreview): string {
+	const parts = [
+		`${lobby.title} is in the lobby`,
+		`${lobby.current_players}/${lobby.max_players} players`,
+	];
+	if (preview?.code) {
+		parts.push(`Code: ${preview.code}`);
+	}
+	return parts.join(' - ');
+}
+
 function normalizeLobbyCode(value: string | null | undefined): string | null {
 	const trimmed = (value ?? '').trim().toUpperCase();
 	return /^[A-Z]{4,6}$/.test(trimmed) ? trimmed : null;
@@ -143,6 +185,8 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 	const [socket, setSocket] = useState<Socket | null>(null);
 	const [lobbyCodes, setLobbyCodes] = useState<Record<number, LobbyCodePreview>>({});
 	const [copiedLobbyId, setCopiedLobbyId] = useState<number | null>(null);
+	const [watchedLobbyIds, setWatchedLobbyIds] = useState<Record<number, boolean>>({});
+	const [notificationPermission, setNotificationPermission] = useState<LobbyNotificationPermission>(getNotificationPermission);
 	const [showLobbyCode, setShowLobbyCode] = useState(() => !SettingsStore.get('hideCode', false));
 	const [ignoreIncompatibleMods, setIgnoreIncompatibleMods] = useState(() =>
 		SettingsStore.get('ignoreIncompatibleLobbyBrowserMods', true)
@@ -151,6 +195,7 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 	const [, forceRender] = useState({});
 	const pendingCodeRequests = useRef<Set<number>>(new Set());
 	const retryTimeouts = useRef<Record<number, number>>({});
+	const notifiedLobbyIds = useRef<Set<number>>(new Set());
 
 	const [mod, setMod] = useState<ModsType>('NONE');
 	const languageNames = languages as Record<string, { name?: string }>;
@@ -230,6 +275,15 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 				delete next[lobbyId];
 				return next;
 			});
+			setWatchedLobbyIds((old) => {
+				if (!(lobbyId in old)) {
+					return old;
+				}
+				const next = { ...old };
+				delete next[lobbyId];
+				return next;
+			});
+			notifiedLobbyIds.current.delete(lobbyId);
 			pendingCodeRequests.current.delete(lobbyId);
 			window.clearTimeout(retryTimeouts.current[lobbyId]);
 			delete retryTimeouts.current[lobbyId];
@@ -409,6 +463,131 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 		return () => window.clearTimeout(timeout);
 	}, [copiedLobbyId]);
 
+	const isLobbyJoinableForCurrentSettings = useCallback(
+		(lobby: PublicLobby, preview?: LobbyCodePreview): boolean => {
+			if (!ignoreIncompatibleMods && lobby.mods !== mod) {
+				return false;
+			}
+			if (!isBaseLobbyJoinable(lobby)) {
+				return false;
+			}
+			return !showLobbyCode || Boolean(preview?.available && preview.code);
+		},
+		[ignoreIncompatibleMods, mod, showLobbyCode]
+	);
+
+	const sendLobbyJoinableNotification = useCallback(
+		(lobby: PublicLobby, preview?: LobbyCodePreview, permission: LobbyNotificationPermission = notificationPermission) => {
+			if (permission === 'granted' && typeof Notification !== 'undefined') {
+				try {
+					const notification = new Notification('Lobby joinable', {
+						body: getLobbyNotificationBody(lobby, preview),
+					});
+					notification.onclick = () => bridge.send(IpcHandlerMessages.OPEN_LOBBYBROWSER);
+				} catch {
+					/* empty */
+				}
+			}
+
+			const soundPath = getStoredStringSetting('lobbyNotificationSoundPath', '');
+			const speaker = getStoredStringSetting('speaker', 'Default');
+			void playLobbyNotificationSound(soundPath, speaker).catch((error) => {
+				console.error('Failed to play lobby notification sound', error);
+			});
+
+			bridge.send(IpcMessages.REQUEST_USER_ATTENTION, 'lobbies');
+		},
+		[notificationPermission]
+	);
+
+	useEffect(() => {
+		const readyLobbyIds: number[] = [];
+		for (const lobbyIdText of Object.keys(watchedLobbyIds)) {
+			const lobbyId = Number(lobbyIdText);
+			const lobby = publiclobbies[lobbyId];
+			const preview = lobbyCodes[lobbyId];
+			if (
+				!lobby ||
+				notifiedLobbyIds.current.has(lobbyId) ||
+				!isLobbyJoinableForCurrentSettings(lobby, preview)
+			) {
+				continue;
+			}
+
+			notifiedLobbyIds.current.add(lobbyId);
+			readyLobbyIds.push(lobbyId);
+			sendLobbyJoinableNotification(lobby, preview);
+		}
+
+		if (readyLobbyIds.length === 0) {
+			return;
+		}
+
+		setWatchedLobbyIds((old) => {
+			const next = { ...old };
+			let changed = false;
+			for (const lobbyId of readyLobbyIds) {
+				if (lobbyId in next) {
+					delete next[lobbyId];
+					changed = true;
+				}
+			}
+			return changed ? next : old;
+		});
+	}, [isLobbyJoinableForCurrentSettings, lobbyCodes, publiclobbies, sendLobbyJoinableNotification, watchedLobbyIds]);
+
+	async function requestLobbyNotificationPermission(): Promise<LobbyNotificationPermission> {
+		const currentPermission = getNotificationPermission();
+		if (currentPermission !== 'default') {
+			setNotificationPermission(currentPermission);
+			return currentPermission;
+		}
+
+		try {
+			const requestedPermission = await Notification.requestPermission();
+			setNotificationPermission(requestedPermission);
+			return requestedPermission;
+		} catch {
+			setNotificationPermission('unsupported');
+			return 'unsupported';
+		}
+	}
+
+	async function toggleLobbyNotification(lobby: PublicLobby, preview?: LobbyCodePreview) {
+		if (watchedLobbyIds[lobby.id]) {
+			setWatchedLobbyIds((old) => {
+				const next = { ...old };
+				delete next[lobby.id];
+				return next;
+			});
+			notifiedLobbyIds.current.delete(lobby.id);
+			return;
+		}
+
+		const permission = await requestLobbyNotificationPermission();
+		if (isLobbyJoinableForCurrentSettings(lobby, preview)) {
+			notifiedLobbyIds.current.add(lobby.id);
+			sendLobbyJoinableNotification(lobby, preview, permission);
+			return;
+		}
+
+		notifiedLobbyIds.current.delete(lobby.id);
+		setWatchedLobbyIds((old) => ({ ...old, [lobby.id]: true }));
+	}
+
+	function getNotifyTooltip(isWatched: boolean, isJoinable: boolean): string {
+		if (isWatched) {
+			return 'Cancel joinable notification';
+		}
+		if (notificationPermission === 'denied') {
+			return 'Notify when joinable (notifications blocked; window will flash)';
+		}
+		if (notificationPermission === 'unsupported') {
+			return 'Notify when joinable (window will flash)';
+		}
+		return isJoinable ? 'Lobby joinable now' : 'Notify when joinable';
+	}
+
 	async function copyLobbyCode(code: string, lobbyId: number) {
 		try {
 			if (navigator.clipboard?.writeText) {
@@ -467,6 +646,9 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 																? 'UNAVAILABLE'
 																: '...');
 
+										const isNotificationWatched = Boolean(watchedLobbyIds[row.id]);
+										const isLobbyJoinable = isLobbyJoinableForCurrentSettings(row, lobbyCodePreview);
+
 										return (
 										<StyledTableRow key={row.id}>
 											<StyledTableCell component="th" scope="row">
@@ -501,34 +683,51 @@ export default function LobbyBrowser({ t }: LobbyBrowserProps) {
 															{lobbyCodePreview?.region ?? getServerLabel(row.server, regionAliases)}
 														</span>
 													</div>
-													<Tooltip
-														title={
-															!showLobbyCode
-																? 'Lobby code hidden'
-																: copiedLobbyId === row.id
-																	? 'Copied'
-																	: 'Copy code'
-														}
-													>
-														<span>
-															<IconButton
-																className={classes.copyButton}
-																size="small"
-																disabled={!isLobbyCodeAvailable || !lobbyCode}
-																onClick={() => {
-																	if (lobbyCode) {
-																		void copyLobbyCode(lobbyCode, row.id);
-																	}
-																}}
-															>
-																{copiedLobbyId === row.id ? (
-																	<CheckIcon htmlColor="#8fd694" fontSize="small" />
-																) : (
-																	<ContentCopyIcon htmlColor="#b7b1c0" fontSize="small" />
-																)}
-															</IconButton>
-														</span>
-													</Tooltip>
+													<div className={classes.codeButtons}>
+														<Tooltip
+															title={
+																!showLobbyCode
+																	? 'Lobby code hidden'
+																	: copiedLobbyId === row.id
+																		? 'Copied'
+																		: 'Copy code'
+															}
+														>
+															<span>
+																<IconButton
+																	className={classes.copyButton}
+																	size="small"
+																	disabled={!isLobbyCodeAvailable || !lobbyCode}
+																	onClick={() => {
+																		if (lobbyCode) {
+																			void copyLobbyCode(lobbyCode, row.id);
+																		}
+																	}}
+																>
+																	{copiedLobbyId === row.id ? (
+																		<CheckIcon htmlColor="#8fd694" fontSize="small" />
+																	) : (
+																		<ContentCopyIcon htmlColor="#b7b1c0" fontSize="small" />
+																	)}
+																</IconButton>
+															</span>
+														</Tooltip>
+														<Tooltip title={getNotifyTooltip(isNotificationWatched, isLobbyJoinable)}>
+															<span>
+																<IconButton
+																	className={classes.copyButton}
+																	size="small"
+																	onClick={() => void toggleLobbyNotification(row, lobbyCodePreview)}
+																>
+																	{isNotificationWatched ? (
+																		<NotificationsActiveIcon htmlColor="#ffcc66" fontSize="small" />
+																	) : (
+																		<NotificationsNoneIcon htmlColor={isLobbyJoinable ? "#8fd694" : "#b7b1c0"} fontSize="small" />
+																	)}
+																</IconButton>
+															</span>
+														</Tooltip>
+													</div>
 												</div>
 											</StyledTableCell>
 										</StyledTableRow>

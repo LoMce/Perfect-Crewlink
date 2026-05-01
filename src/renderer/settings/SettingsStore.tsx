@@ -28,6 +28,7 @@ const defaultSettings: ISettings = {
 	compactOverlay: false,
 	alwaysShowOverlayPlayers: false,
 	ignoreIncompatibleLobbyBrowserMods: true,
+	lobbyNotificationSoundPath: '',
 	overlayPosition: 'right',
 	enableOverlay: true,
 	meetingOverlay: true,

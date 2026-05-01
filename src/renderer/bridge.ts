@@ -6,7 +6,15 @@ import { resetHotkeys } from '../common/tauri-hotkeys';
 import { launchAmongUs } from '../common/tauri-launcher';
 import { openLobbyBrowser, setOverlayEnabled } from '../common/tauri-overlay';
 import { getSystemLocale, triggerAppUpdate } from '../common/tauri-system';
-import { hideWindow, minimizeWindow, quitApp, relaunchApp, setAlwaysOnTop, showWindow } from '../common/tauri-window';
+import {
+	hideWindow,
+	minimizeWindow,
+	quitApp,
+	relaunchApp,
+	requestUserAttention,
+	setAlwaysOnTop,
+	showWindow,
+} from '../common/tauri-window';
 import SettingsStore from './settings/SettingsStore';
 
 type Listener = (...args: unknown[]) => void;
@@ -93,6 +101,13 @@ export const bridge = {
 		if (event === 'showWindow') {
 			const [label] = args;
 			void showWindow(typeof label === 'string' ? label : 'main');
+			return;
+		}
+		if (event === 'REQUEST_USER_ATTENTION') {
+			const [label] = args;
+			void requestUserAttention(typeof label === 'string' ? label : 'main').catch(() => {
+				/* empty */
+			});
 			return;
 		}
 		if (event === 'update-app') {

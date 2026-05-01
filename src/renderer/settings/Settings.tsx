@@ -18,6 +18,7 @@ import {
 import Grid from '@mui/material/GridLegacy';
 import { DialogContent, DialogContentText, DialogActions, DialogTitle, Slider, Tooltip } from '@mui/material';
 import { Dialog, TextField } from '@mui/material';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import ChevronLeft from '@mui/icons-material/ArrowBack';
 import Alert from '@mui/material/Alert';
 import { GameState } from '../../common/AmongUsState';
@@ -29,7 +30,8 @@ import languages from '../language/languages';
 import ServerURLInput from './ServerURLInput';
 import MuiDivider from '@mui/material/Divider';
 import PublicLobbySettings from './PublicLobbySettings';
-import SettingsStore, { pushToTalkOptions, setSetting } from './SettingsStore';
+import SettingsStore, { pushToTalkOptions } from './SettingsStore';
+import { playLobbyNotificationSound } from '../lobbyNotificationSound';
 
 interface StyleInput {
 	open: boolean;
@@ -327,6 +329,29 @@ const Settings: React.FC<SettingsProps> = function ({ t, open, onClose }: Settin
 	const URLInputCallback = useCallback((url: string) => {
 		setSettings('serverURL', url);
 	}, []);
+
+	const selectLobbyNotificationSound = async () => {
+		const selected = await openDialog({
+			multiple: false,
+			directory: false,
+			filters: [
+				{
+					name: 'Audio',
+					extensions: ['mp3', 'wav', 'ogg', 'oga', 'flac', 'aac', 'm4a', 'webm'],
+				},
+			],
+		});
+
+		if (typeof selected === 'string') {
+			setSettings('lobbyNotificationSoundPath', selected);
+		}
+	};
+
+	const testLobbyNotificationSound = () => {
+		void playLobbyNotificationSound(settings.lobbyNotificationSoundPath, settings.speaker).catch((error) => {
+			console.error('Failed to play lobby notification sound', error);
+		});
+	};
 
 	const SavePublicLobbyCallback = useCallback(<K extends keyof ILobbySettings>(setting: K, newValue: ILobbySettings[K]) => {
 		const newSetting: Partial<ILobbySettings> = {};
@@ -655,6 +680,34 @@ const Settings: React.FC<SettingsProps> = function ({ t, open, onClose }: Settin
 					))}
 				</TextField>
 				{open && <TestSpeakersButton t={t} speaker={settings.speaker} />}
+				<Box width="100%" marginTop={1}>
+					<Typography gutterBottom>Lobby notification sound</Typography>
+					<TextField
+						fullWidth
+						size="small"
+						variant="outlined"
+						color="secondary"
+						value={settings.lobbyNotificationSoundPath || 'Default boop'}
+						InputProps={{ readOnly: true }}
+					/>
+					<Box display="flex" justifyContent="center" marginTop={1} style={{ gap: 8 }}>
+						<Button variant="contained" color="secondary" size="small" onClick={() => void selectLobbyNotificationSound()}>
+							Choose audio
+						</Button>
+						<Button
+							variant="outlined"
+							color="secondary"
+							size="small"
+							disabled={!settings.lobbyNotificationSoundPath}
+							onClick={() => setSettings('lobbyNotificationSoundPath', '')}
+						>
+							Default
+						</Button>
+						<Button variant="outlined" color="secondary" size="small" onClick={testLobbyNotificationSound}>
+							Test
+						</Button>
+					</Box>
+				</Box>
 				<RadioGroup
 					value={settings.pushToTalkMode}
 					onChange={(ev) => {

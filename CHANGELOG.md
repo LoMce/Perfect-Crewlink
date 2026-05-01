@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:C51111,50:24C8DB,100:C51111&height=140&section=header&text=Changelog&fontSize=52&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Meetings%2C%20voice%2C%20and%20TOU%20Mira%20cosmetics%20fixed&descSize=16&descAlignY=60&descAlign=50" width="100%" alt="Changelog"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:C51111,50:24C8DB,100:C51111&height=140&section=header&text=Changelog&fontSize=52&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Lobby%20alerts%2C%20smooth%20boops%2C%20and%20faint%20voice%20highlights&descSize=16&descAlignY=60&descAlign=50" width="100%" alt="Changelog"/>
 
 <br/>
 
-<img src="https://img.shields.io/badge/Perfect_Crewlink-v1.0.5-C51111?style=for-the-badge&logo=rocket&logoColor=white" alt="Perfect Crewlink v1.0.5"/>
+<img src="https://img.shields.io/badge/Perfect_Crewlink-v1.0.6-C51111?style=for-the-badge&logo=rocket&logoColor=white" alt="Perfect Crewlink v1.0.6"/>
 &nbsp;
-<img src="https://img.shields.io/badge/RELEASED-2026--05--01-24C8DB?style=for-the-badge" alt="released"/>
+<img src="https://img.shields.io/badge/RELEASED-2026--05--02-24C8DB?style=for-the-badge" alt="released"/>
 &nbsp;
 <img src="https://img.shields.io/badge/STATUS-STABLE-2ed573?style=for-the-badge" alt="stable"/>
 
@@ -14,46 +14,53 @@
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
-# <img src="https://img.shields.io/badge/v1.0.5-C51111?style=for-the-badge&logo=rocket&logoColor=white" alt="v1.0.5"/> &nbsp; The Reliable Meetings & Voice Release
+# <img src="https://img.shields.io/badge/v1.0.6-C51111?style=for-the-badge&logo=rocket&logoColor=white" alt="v1.0.6"/> &nbsp; The Lobby Alerts & Soft Voice Release
 
-> **Perfect Crewlink v1.0.5** makes meeting highlights, voice status, and TOU Mira cosmetics match what is really happening in-game.
+> **Perfect Crewlink v1.0.6** makes lobby watching useful, quiet voices visible, and notifications pleasant instead of noisy.
 
 <div align="center">
 
-| <img src="https://img.shields.io/badge/MEETINGS-RUST_CARDS-24C8DB?style=for-the-badge" alt="meetings"/> | <img src="https://img.shields.io/badge/VOICE-STALE_STREAMS_FIXED-8b5cf6?style=for-the-badge" alt="voice"/> | <img src="https://img.shields.io/badge/COSMETICS-TOU_MIRA_READY-2ed573?style=for-the-badge" alt="cosmetics"/> |
-| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Real `MeetingHud` card IDs                                                                              | Dropped voice shows immediately                                                                            | Active outfit clothes render                                                                                  |
+| <img src="https://img.shields.io/badge/LOBBIES-JOINABLE_ALERTS-24C8DB?style=for-the-badge" alt="lobbies"/> | <img src="https://img.shields.io/badge/SOUND-CUSTOM_BOOPS-8b5cf6?style=for-the-badge" alt="sound"/> | <img src="https://img.shields.io/badge/VOICE-FAINT_TALKERS-2ed573?style=for-the-badge" alt="voice"/> |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Watch public lobbies until joinable                                                                        | Smooth default boop or custom audio                                                                 | Lower overlay activity thresholds                                                                    |
 
 </div>
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
-### <img src="https://img.shields.io/badge/-MEETING_CARDS-24C8DB?style=flat-square" height="22"/>
+### <img src="https://img.shields.io/badge/-LOBBY_ALERTS-24C8DB?style=flat-square" height="22"/>
 
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Highlights use Rust-read `MeetingHud.playerStates` / `PlayerVoteArea.TargetPlayerId`.
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Guesses, deaths, swaps, and disconnects no longer move highlights to the wrong card.
-- <img src="https://img.shields.io/badge/NEW-2ed573?style=flat-square"/> &nbsp; Added Settings → Overlay → **AleLudu meeting layout**.
+- <img src="https://img.shields.io/badge/NEW-2ed573?style=flat-square"/> &nbsp; Added a bell button to Lobby Browser rows to watch a lobby until it becomes joinable.
+- <img src="https://img.shields.io/badge/NEW-2ed573?style=flat-square"/> &nbsp; Watched lobbies notify when they are in the lobby, have open slots, and have a usable code.
+- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; If desktop notifications are blocked, the lobby window still flashes in the taskbar.
 
-### <img src="https://img.shields.io/badge/-VOICE_STATUS-8b5cf6?style=flat-square" height="22"/>
+### <img src="https://img.shields.io/badge/-NOTIFICATION_SOUND-8b5cf6?style=flat-square" height="22"/>
 
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Stale remote audio streams and failed WebRTC transports now show as no-voice/disconnected.
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; You no longer need someone else to talk before noticing a broken voice link.
+- <img src="https://img.shields.io/badge/NEW-2ed573?style=flat-square"/> &nbsp; Added Settings → Audio → **Lobby notification sound**.
+- <img src="https://img.shields.io/badge/NEW-2ed573?style=flat-square"/> &nbsp; Added custom audio file support for MP3, WAV, OGG, FLAC, AAC, M4A, and WebM.
+- <img src="https://img.shields.io/badge/IMPROVED-24C8DB?style=flat-square"/> &nbsp; Replaced the sharp chime default with a short smooth boop.
 
-### <img src="https://img.shields.io/badge/-TOU_MIRA_COSMETICS-2ed573?style=flat-square" height="22"/>
+### <img src="https://img.shields.io/badge/-VOICE_OVERLAY-2ed573?style=flat-square" height="22"/>
 
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Hats, skins, visors, and clothing load from active outfit data.
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Outfit dictionary order no longer drops visible clothes from Crewlink icons.
+- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Very faint remote voices now trigger overlay highlights more reliably.
+- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Overlay talking state now follows audible low-level speech instead of requiring louder peaks.
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
 ### <img src="https://img.shields.io/badge/-DOWNLOADS-2ed573?style=flat-square" height="22"/>
 
-- <img src="https://img.shields.io/badge/Windows_Installer-0078D4?style=flat-square&logo=windows11&logoColor=white"/> &nbsp; `Perfect Crewlink_1.0.5_x64-setup.exe`
+- <img src="https://img.shields.io/badge/Windows_Installer-0078D4?style=flat-square&logo=windows11&logoColor=white"/> &nbsp; `Perfect Crewlink_1.0.6_x64-setup.exe`
 - <img src="https://img.shields.io/badge/Windows_Portable-0078D4?style=flat-square&logo=windows11&logoColor=white"/> &nbsp; `perfectcrewlink.exe`
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
 ## Previous releases
+
+### v1.0.5 — Reliable meetings and voice
+
+- Fixed meeting highlights using Rust-read `MeetingHud` card IDs.
+- Fixed stale remote audio streams and failed WebRTC transport display.
+- Fixed TOU Mira hats, skins, visors, and clothing from active outfit data.
 
 ### v1.0.4 — Overlay, voice, and TOU Mira cleanup
 
@@ -75,6 +82,6 @@
 
 <br/>
 
-<sub><strong>Perfect Crewlink</strong> &middot; Changelog v1.0.5 &middot; 2026-05-01</sub>
+<sub><strong>Perfect Crewlink</strong> &middot; Changelog v1.0.6 &middot; 2026-05-02</sub>
 
 </div>

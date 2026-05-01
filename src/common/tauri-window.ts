@@ -20,6 +20,10 @@ export async function showWindow(label?: string): Promise<void> {
 	await invoke('show_window', { label });
 }
 
+export async function requestUserAttention(label?: string): Promise<void> {
+	await invoke('request_user_attention', { label });
+}
+
 export async function setAlwaysOnTop(enabled: boolean): Promise<void> {
 	await invoke('set_always_on_top', { enabled });
 }
