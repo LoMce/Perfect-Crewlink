@@ -99,6 +99,9 @@ Get the latest Windows installer or portable executable from:
 
 ## Build from source
 
+<details>
+<summary><strong>Show build instructions</strong></summary>
+
 ### Requirements
 
 - Node.js 20+
@@ -155,9 +158,14 @@ sudo apt-get install -y \
 
 </details>
 
+</details>
+
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
-## Project layout
+## Project layout & commands
+
+<details>
+<summary><strong>Show repository layout and commands</strong></summary>
 
 ```text
 src/          React renderer, overlay UI, settings, lobby browser, voice client
@@ -175,6 +183,8 @@ npm run typecheck      # Type-check TypeScript
 npm run build          # Build renderer
 npm run tauri -- build # Build desktop app
 ```
+
+</details>
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
