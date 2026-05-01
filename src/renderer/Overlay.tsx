@@ -139,7 +139,6 @@ const OVERLAY_VOICE_ACTIVITY_GRACE_MS = 1500;
 
 interface StableOverlayPlayer {
 	player: Player;
-	firstSeenAt: number;
 	lastSeenAt: number;
 }
 
@@ -183,8 +182,6 @@ const Overlay: React.FC = function () {
 			setVoiceState(normalizeVoiceState(newState));
 		};
 		const onSettings = (_: unknown, newState: ISettings) => {
-			console.log("Recieved settings..");
-
 			setSettings(newState);
 		};
 		const onColorChange = (_: unknown, colors: string[][]) => {
@@ -390,7 +387,6 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 				liveClientIds.add(player.clientId);
 				next[player.clientId] = {
 					player,
-					firstSeenAt: old[player.clientId]?.firstSeenAt ?? nowTick,
 					lastSeenAt: nowTick,
 				};
 			}
@@ -465,10 +461,6 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 
 	if (!players) return null;
 
-	// const myPLayer = useMemo(() => {
-	// 	if (!gameState.players) return null;
-	// 	return gameState.players.find(o => o.isLocal && (!o.disconnected || !o.bugged))
-	// }, [gameState.players]);
 
 	players?.forEach((player) => {
 		const talking =
@@ -487,7 +479,6 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 				<div>
 					<Avatar
 						key={player.id}
-						// connectionState={!connected ? 'disconnected' : audio ? 'connected' : 'novoice'}
 						player={player}
 						showborder={isOnSide && !compactOverlay}
 						muted={voiceState.muted && player.isLocal}
@@ -539,9 +530,6 @@ const AvatarOverlay: React.FC<AvatarOverlayProps> = ({
 					<div className="players_container playerContainerBack">{avatars}</div>
 				</div>
 			</div>
-			{/* {(voiceState.muted || voiceState.deafened) && (
-				<div className="volumeicons">{voiceState.deafened ? <VolumeOff /> : <MicOff />}</div>
-			)} */}
 		</div>
 	);
 };
