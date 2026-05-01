@@ -1,10 +1,10 @@
 {
-  "nonRustRuntimeFiles": 66,
-  "nonRustRuntimeLoc": 20961,
+  "nonRustRuntimeFiles": 58,
+  "nonRustRuntimeLoc": 18875,
   "highlightStaticFailures": 5,
   "rustMeetingSourceFailures": 0,
-  "frontendSurfaceFailures": 7,
-  "staticScore": 44561,
+  "frontendSurfaceFailures": 6,
+  "staticScore": 40675,
   "failed": [
     "overlay_not_using_hardcoded_aleludu_columns",
     "overlay_not_using_base_aleludu_tuning_percentages",
@@ -16,7 +16,6 @@
     "tauri_build_not_driven_by_npm_vite",
     "renderer_overlay_tsx_removed_or_non_runtime",
     "renderer_voice_tsx_removed_or_rust_backed",
-    "electron_legacy_main_ts_removed",
     "rust_frontend_or_native_ui_dependency_present"
   ]
 }
