@@ -4,241 +4,189 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")" && pwd)"
 cd "$repo_root"
 
-node <<'NODE'
+tmp_dir="${TMPDIR:-.}"
+metrics_json="$tmp_dir/perfectcrewlink-pure-rust-metrics.json"
+
+node - "$metrics_json" <<'NODE'
 const fs = require('fs');
+const path = require('path');
 
-function read(path) {
-  return fs.readFileSync(path, 'utf8');
+const outPath = process.argv[2];
+const sourceExt = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.d.ts']);
+const rootRuntimeFiles = [
+  'package.json',
+  'package-lock.json',
+  'index.html',
+  'vite.config.ts',
+  'vite.halo.config.ts',
+  'tsconfig.json',
+  'tsconfig.halo.json',
+];
+
+function exists(p) {
+  return fs.existsSync(p);
 }
 
-const lib = read('src-tauri/src/lib.rs');
-const overlay = read('src/renderer/Overlay.tsx');
-const voice = read('src/renderer/Voice.tsx');
+function read(p) {
+  return exists(p) ? fs.readFileSync(p, 'utf8') : '';
+}
 
-let bugScore = 0;
-function check(name, ok) {
-  if (!ok) {
-    bugScore += 1;
-    console.log(`CHECK_FAIL ${name}`);
-  } else {
-    console.log(`CHECK_PASS ${name}`);
+function walk(dir, out = []) {
+  if (!exists(dir)) return out;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'target') continue;
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) walk(p, out);
+    else out.push(p.replace(/\\/g, '/'));
   }
+  return out;
 }
 
-check('overlay_visible_when_among_us_not_foreground', !/!\s*state\.is_foreground/.test(lib));
-check('overlay_removed_unused_foreground_state', !/is_foreground/.test(lib) && !/GetForegroundWindow/.test(lib));
-check('overlay_embeds_as_among_us_child', /SetParent/.test(lib) && /WS_CHILD/.test(lib) && /GetClientRect/.test(lib));
-check('overlay_not_topmost_when_embedded', !/set_always_on_top\(true\)/.test(lib) && !/"alwaysOnTop": true/.test(read('src-tauri/tauri.conf.json')));
-check('overlay_child_z_order_top', (() => {
-  const start = lib.indexOf('fn set_overlay_child_styles');
-  const end = start >= 0 ? lib.indexOf('fn embed_overlay_window', start) : -1;
-  const styles = start >= 0 && end > start ? lib.slice(start, end) : '';
-  const sizeBlock = styles.match(/if let Some\(size\) = size[\s\S]*?SWP_NOACTIVATE \| SWP_FRAMECHANGED/)?.[0] ?? '';
-  return /Some\(HWND_TOP\)/.test(sizeBlock) && !/SWP_NOZORDER/.test(sizeBlock);
-})());
-const hideOverlayWindowStart = lib.indexOf('fn hide_overlay_window');
-const hideOverlayWindowEnd = hideOverlayWindowStart >= 0 ? lib.indexOf('fn refresh_overlay_window', hideOverlayWindowStart) : -1;
-const hideOverlayWindow = hideOverlayWindowStart >= 0 && hideOverlayWindowEnd > hideOverlayWindowStart ? lib.slice(hideOverlayWindowStart, hideOverlayWindowEnd) : '';
-check('overlay_detaches_after_hide_without_forcing_visible', /window\.hide\(\)/.test(hideOverlayWindow) && /detach_overlay_window\(window\)/.test(hideOverlayWindow) && hideOverlayWindow.indexOf('window.hide()') < hideOverlayWindow.indexOf('detach_overlay_window(window)') && (lib.match(/hide_overlay_window\(&window\)/g)?.length ?? 0) >= 3 && !/let mut next_style = style \| WS_VISIBLE/.test(lib));
-const overlayChildStylesStart = lib.indexOf('fn set_overlay_child_styles');
-const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
-const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
-check('overlay_child_style_set_before_setparent', overlayChildStyles.indexOf('next_style |= WS_CHILD') >= 0 && overlayChildStyles.indexOf('next_style |= WS_CHILD') < overlayChildStyles.indexOf('SetParent(overlay_hwnd'));
-check('overlay_detach_applies_framechanged', /if let Some\(size\) = size[\s\S]*?\} else \{[\s\S]*?SetWindowPos\([\s\S]*?SWP_NOMOVE \| SWP_NOSIZE \| SWP_NOZORDER \| SWP_NOACTIVATE \| SWP_FRAMECHANGED/.test(overlayChildStyles));
-check('overlay_skips_redundant_setparent', /GetParent/.test(overlayChildStyles) && /current_parent != Some\(parent_hwnd\)/.test(overlayChildStyles) && /current_parent\.is_some\(\)/.test(overlayChildStyles));
-check('meeting_order_frozen_for_all_huds', /frozenMeetingOrderRef/.test(overlay));
-check('meeting_slot_count_uses_frozen_slots', /aleLuduSlotCount/.test(overlay));
-check('meeting_freeze_allows_initial_roster_growth', /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay));
-check('rejoin_uses_player_id_not_client_id', !/connect\.connect\(gameState\.lobbyCode,\s*myPlayer\.clientId/.test(voice));
-check('spatial_audio_uses_top_down_axes', /setTopDownPanPosition/.test(voice) && !/pan\.positionY\.setValueAtTime\(panPos\[1\]/.test(voice));
-check('stale_vad_cannot_overwrite_socket_mapping', /isStaleClientSocketUpdate/.test(voice));
-const vadHandler = voice.match(/socket\.on\('VAD',[\s\S]*?\n\t\t\}\);/)?.[0] ?? '';
-check('vad_requires_socket_mapped_client_id', /const mappedClient = socketClientsRef\.current\[data\.socketId\]/.test(vadHandler) && /if \(!mappedClient\)/.test(vadHandler) && /const vadClientId = mappedClient\.clientId/.test(vadHandler) && /isStaleClientSocketUpdate\(vadClientId, data\.socketId\)/.test(vadHandler) && /\[vadClientId\]: data\.activity/.test(vadHandler) && /upsertClientConnection\(vadClientId/.test(vadHandler) && !/\?\? data\.client\.clientId/.test(vadHandler));
-check('duplicate_client_socket_map_is_deduped', /preferSocketForClient/.test(voice) && /nextSocketIds\[client\.clientId\] !== socketId/.test(voice));
-check('connect_refreshes_same_lobby_ids', /currentLobby === lobbyCode/.test(voice) && /socket\.emit\('id', playerId, clientId\)/.test(voice));
-check('connect_effect_tracks_player_identity', /myPlayer\?\.id/.test(voice.match(/\}, \[connect\?\.connect[\s\S]*?\]\);/)?.[0] ?? '') && /gameState\.clientId/.test(voice.match(/\}, \[connect\?\.connect[\s\S]*?\]\);/)?.[0] ?? ''));
-check('other_dead_tracks_player_updates', /\[gameState\.gameState, gameState\.players\]/.test(voice) && /let changed = false/.test(voice));
-check('camera_audio_handles_missing_camera', /const cameras = AmongUsMaps\[state\.map\]\?\.cameras \?\? \{\}/.test(voice) && /if \(!camerapos\)/.test(voice));
-check('talking_highlight_uses_recent_audio_guard', /REMOTE_AUDIO_TALKING_GRACE_MS/.test(voice) && /serverVadTalking/.test(voice));
-check('overlay_visibilitychange_refreshes_when_hidden', !/document\.visibilityState === 'visible'/.test(overlay));
-check('meeting_roster_growth_appends_without_reshuffle', /appendMissingMeetingPlayers/.test(overlay));
-check('meeting_same_length_replacements_append', /hasMissingMeetingPlayers/.test(overlay));
-check('meeting_missing_players_render_placeholders', /meetingPlaceholder/.test(overlay) && /player: Player \| null/.test(overlay));
-check('talking_vad_requires_audio_state', !/!remoteAudioState/.test(voice.match(/const serverVadTalking[\s\S]*?\);/)?.[0] ?? ''));
-check('talking_clears_when_audio_missing', /else if \(tempTalking\[player\.clientId\]\)/.test(voice));
-const disconnectPeerStart = voice.indexOf('function disconnectPeer');
-const disconnectPeerEnd = disconnectPeerStart >= 0 ? voice.indexOf('// Handle pushToTalk', disconnectPeerStart) : -1;
-const disconnectPeerBody = disconnectPeerStart >= 0 && disconnectPeerEnd > disconnectPeerStart ? voice.slice(disconnectPeerStart, disconnectPeerEnd) : '';
-const noConnectionStart = disconnectPeerBody.indexOf('if (!connection)');
-const noConnectionReturn = noConnectionStart >= 0 ? disconnectPeerBody.indexOf('return;', noConnectionStart) : -1;
-const noConnectionBranch = noConnectionStart >= 0 && noConnectionReturn > noConnectionStart ? disconnectPeerBody.slice(noConnectionStart, noConnectionReturn) : '';
-check('disconnect_peer_cleans_audio_without_connection', /disconnectAudioElement\(peer\)/.test(noConnectionBranch));
-const audioMonitorStart = voice.indexOf('function startPeerAudioMonitor');
-const audioMonitorEnd = audioMonitorStart >= 0 ? voice.indexOf('function disconnectAudioElement', audioMonitorStart) : -1;
-const audioMonitorBody = audioMonitorStart >= 0 && audioMonitorEnd > audioMonitorStart ? voice.slice(audioMonitorStart, audioMonitorEnd) : '';
-check('audio_monitor_requires_socket_mapped_client_id', /const activeClientId = socketClientsRef\.current\[peer\]\?\.clientId;/.test(audioMonitorBody) && /if \(activeClientId === undefined\)/.test(audioMonitorBody) && /activeClientId !== monitor\.clientId/.test(audioMonitorBody) && /monitor\.clientId = activeClientId/.test(audioMonitorBody) && /updateClientAudioActivity\(monitor\.clientId/.test(audioMonitorBody) && !/\?\? monitor\.clientId/.test(audioMonitorBody) && !/updateClientAudioActivity\(clientId/.test(audioMonitorBody));
+const srcFiles = walk('src').filter((file) => sourceExt.has(path.extname(file)) || file.endsWith('.d.ts'));
+const rootFiles = rootRuntimeFiles.filter(exists);
+const nonRustRuntimeFiles = [...srcFiles, ...rootFiles];
+const nonRustRuntimeLoc = nonRustRuntimeFiles.reduce((sum, file) => {
+  const text = read(file);
+  return sum + (text ? text.split(/\r?\n/).length : 0);
+}, 0);
 
-console.log(`METRIC static_bug_checks=${bugScore}`);
+const overlay = read('src/renderer/Overlay.tsx');
+const settings = read('src/renderer/settings/Settings.tsx') + '\n' + read('src/renderer/settings/SettingsStore.tsx');
+const commonState = read('src/common/AmongUsState.ts');
+const gameSession = read('src-tauri/src/game_session.rs');
+const cargoToml = read('src-tauri/Cargo.toml');
+const tauriConf = read('src-tauri/tauri.conf.json');
+const pkg = read('package.json');
+
+let highlightStaticFailures = 0;
+let rustMeetingSourceFailures = 0;
+let frontendSurfaceFailures = 0;
+const failed = [];
+
+function fail(bucket, name, ok) {
+  if (ok) {
+    console.log(`CHECK_PASS ${name}`);
+    return;
+  }
+  failed.push(name);
+  console.log(`CHECK_FAIL ${name}`);
+  if (bucket === 'highlight') highlightStaticFailures += 1;
+  else if (bucket === 'rust_meeting') rustMeetingSourceFailures += 1;
+  else if (bucket === 'frontend') frontendSurfaceFailures += 1;
+}
+
+fail('highlight', 'overlay_not_using_hardcoded_aleludu_columns', !/const ALE_LUDU_COLUMNS\s*=\s*4/.test(overlay));
+fail('highlight', 'overlay_not_using_base_aleludu_tuning_percentages', !/BASE_ALE_LUDU_TUNING|BASE_ALE_LUDU_COLUMNS/.test(overlay));
+fail('highlight', 'overlay_no_aleludu_card_style_from_slot_percent_math', !/function getAleLuduCardStyle[\s\S]*?index % ALE_LUDU_COLUMNS/.test(overlay));
+fail('highlight', 'overlay_no_screen_ratio_meeting_size_guess', !/ratio_diff|iPadRatio|1\.192|1\.146|1\.591|1\.72|1\.96/.test(overlay));
+fail('highlight', 'overlay_no_compacted_aleludu_render_player_filter', !/aleLuduRenderPlayers\s*=\s*renderPlayers\.filter/.test(overlay));
+fail('highlight', 'overlay_consumes_rust_meeting_hud_cards', /gameState\.meetingHud|meetingHud\?\.cards|meetingHud\.cards/.test(overlay));
+fail('highlight', 'settings_no_primary_aleludu_calibration_ui', !/AleLuduTuningPanel|aleLuduTuning/.test(settings));
+
+fail('rust_meeting', 'rust_has_meeting_hud_snapshot_struct', /struct\s+MeetingHudSnapshot/.test(gameSession));
+fail('rust_meeting', 'rust_has_meeting_hud_card_struct', /struct\s+MeetingHudCard/.test(gameSession));
+fail('rust_meeting', 'rust_state_emits_meeting_hud_snapshot', /pub\s+meeting_hud\s*:\s*Option<MeetingHudSnapshot>|pub\s+meeting_hud\s*:\s*MeetingHudSnapshot/.test(gameSession));
+fail('rust_meeting', 'rust_has_meeting_hud_reader_function', /fn\s+read_meeting_hud|fn\s+parse_meeting_hud|fn\s+read_meeting_cards/.test(gameSession));
+fail('rust_meeting', 'rust_meeting_cards_include_player_identity', /player_id\s*:\s*u32/.test(gameSession) && /client_id\s*:\s*Option<u32>|client_id\s*:\s*u32/.test(gameSession));
+fail('rust_meeting', 'rust_meeting_cards_include_card_rect_or_world_pos', /MeetingHudCard[\s\S]*(rect|world|x\s*:\s*f32)/.test(gameSession));
+fail('rust_meeting', 'ts_state_has_temporary_meeting_hud_bridge', /meetingHud\??\s*:\s*MeetingHud|interface\s+MeetingHud/.test(commonState));
+
+fail('frontend', 'package_no_react_runtime_dependency', !/"react"\s*:|"react-dom"\s*:|@mui\//.test(pkg));
+fail('frontend', 'package_no_webrtc_js_runtime_dependency', !/"simple-peer"\s*:|"socket\.io-client"\s*:|"webrtc-adapter"\s*:/.test(pkg));
+fail('frontend', 'tauri_build_not_driven_by_npm_vite', !/beforeBuildCommand"\s*:\s*"npm run build"|frontendDist"\s*:\s*"\.\.\/dist"|devUrl/.test(tauriConf));
+fail('frontend', 'renderer_overlay_tsx_removed_or_non_runtime', !exists('src/renderer/Overlay.tsx'));
+fail('frontend', 'renderer_voice_tsx_removed_or_rust_backed', !exists('src/renderer/Voice.tsx'));
+fail('frontend', 'electron_legacy_main_ts_removed', !exists('src/main'));
+fail('frontend', 'rust_frontend_or_native_ui_dependency_present', /dioxus|egui|eframe|iced|slint|leptos|yew|wry|webrtc|cpal|rodio/i.test(cargoToml));
+
+const staticScore =
+  nonRustRuntimeLoc +
+  nonRustRuntimeFiles.length * 100 +
+  highlightStaticFailures * 2000 +
+  rustMeetingSourceFailures * 2000 +
+  frontendSurfaceFailures * 1000;
+
+fs.writeFileSync(outPath, JSON.stringify({
+  nonRustRuntimeFiles: nonRustRuntimeFiles.length,
+  nonRustRuntimeLoc,
+  highlightStaticFailures,
+  rustMeetingSourceFailures,
+  frontendSurfaceFailures,
+  staticScore,
+  failed,
+}, null, 2));
 NODE
 
-simulation_log="${TMPDIR:-.}/perfectcrewlink-simulations.log"
+print_last_lines() {
+	local log_file="$1"
+	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$log_file"
+}
+
+cargo_log="$tmp_dir/perfectcrewlink-cargo-check.log"
 set +e
-node scripts/simulate-highlight-audio.mjs >"$simulation_log" 2>&1
-simulation_status=$?
+cargo check --manifest-path src-tauri/Cargo.toml --quiet >"$cargo_log" 2>&1
+cargo_status=$?
 set -e
-if [[ "$simulation_status" -ne 0 ]]; then
-	echo "SIMULATION_CRASH"
-	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$simulation_log"
-	simulation_failures=10
+if [[ "$cargo_status" -ne 0 ]]; then
+	echo "CARGO_CHECK_FAIL"
+	print_last_lines "$cargo_log"
+	cargo_check_fail=1
 else
-	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.readFileSync(p, 'utf8'); process.stdout.write(text);" "$simulation_log"
-	simulation_failures=$(node -e "const fs = require('fs'); const text = fs.readFileSync(process.argv[1], 'utf8'); const match = text.match(/METRIC simulation_failures=(\\d+)/); console.log(match ? match[1] : '10');" "$simulation_log")
+	echo "CARGO_CHECK_PASS"
+	cargo_check_fail=0
 fi
 
-cosmetic_log="${TMPDIR:-.}/perfectcrewlink-cosmetics.log"
-set +e
-node scripts/simulate-cosmetics.mjs >"$cosmetic_log" 2>&1
-cosmetic_status=$?
-set -e
-if [[ "$cosmetic_status" -ne 0 ]]; then
-	echo "COSMETIC_SIMULATION_CRASH"
-	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$cosmetic_log"
-	cosmetic_failures=10
-else
-	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.readFileSync(p, 'utf8'); process.stdout.write(text);" "$cosmetic_log"
-	cosmetic_failures=$(node -e "const fs = require('fs'); const text = fs.readFileSync(process.argv[1], 'utf8'); const match = text.match(/METRIC cosmetic_failures=(\\d+)/); console.log(match ? match[1] : '10');" "$cosmetic_log")
-fi
+if [[ -f package.json ]]; then
+	typecheck_log="$tmp_dir/perfectcrewlink-typecheck.log"
+	set +e
+	npm run typecheck --silent >"$typecheck_log" 2>&1
+	typecheck_status=$?
+	set -e
+	if [[ "$typecheck_status" -ne 0 ]]; then
+		echo "TYPECHECK_FAIL"
+		print_last_lines "$typecheck_log"
+		typecheck_fail=1
+	else
+		echo "TYPECHECK_PASS"
+		typecheck_fail=0
+	fi
 
-typecheck_log="${TMPDIR:-.}/perfectcrewlink-typecheck.log"
-set +e
-npm run typecheck --silent >"$typecheck_log" 2>&1
-typecheck_status=$?
-set -e
-if [[ "$typecheck_status" -ne 0 ]]; then
-	echo "TYPECHECK_FAIL"
-	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$typecheck_log"
-	typecheck_fail=1
+	build_log="$tmp_dir/perfectcrewlink-vite-build.log"
+	set +e
+	npm run build --silent >"$build_log" 2>&1
+	build_status=$?
+	set -e
+	if [[ "$build_status" -ne 0 ]]; then
+		echo "BUILD_FAIL"
+		print_last_lines "$build_log"
+		build_fail=1
+	else
+		echo "BUILD_PASS"
+		build_fail=0
+	fi
 else
-	echo "TYPECHECK_PASS"
+	echo "TYPECHECK_SKIPPED_NO_PACKAGE_JSON"
 	typecheck_fail=0
-fi
-
-build_log="${TMPDIR:-.}/perfectcrewlink-vite-build.log"
-set +e
-npm run build --silent >"$build_log" 2>&1
-build_status=$?
-set -e
-if [[ "$build_status" -ne 0 ]]; then
-	echo "BUILD_FAIL"
-	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$build_log"
-	build_fail=1
-else
-	echo "BUILD_PASS"
+	echo "BUILD_SKIPPED_NO_PACKAGE_JSON"
 	build_fail=0
 fi
 
-rust_log="${TMPDIR:-.}/perfectcrewlink-cargo-check.log"
-set +e
-cargo check --manifest-path src-tauri/Cargo.toml --quiet >"$rust_log" 2>&1
-rust_status=$?
-set -e
-if [[ "$rust_status" -ne 0 ]]; then
-	echo "RUST_CHECK_FAIL"
-	node -e "const fs = require('fs'); const p = process.argv[1]; const text = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : ''; console.log(text.split(/\\r?\\n/).slice(-80).join('\\n'));" "$rust_log"
-	rust_check_fail=1
-else
-	echo "RUST_CHECK_PASS"
-	rust_check_fail=0
-fi
-
-static_bug_checks=$(
-	node <<'NODE'
+node - "$metrics_json" "$cargo_check_fail" "$typecheck_fail" "$build_fail" <<'NODE'
 const fs = require('fs');
-const lib = fs.readFileSync('src-tauri/src/lib.rs', 'utf8');
-const overlay = fs.readFileSync('src/renderer/Overlay.tsx', 'utf8');
-const voice = fs.readFileSync('src/renderer/Voice.tsx', 'utf8');
-const checks = [
-  !/!\s*state\.is_foreground/.test(lib),
-  !/is_foreground/.test(lib) && !/GetForegroundWindow/.test(lib),
-  /SetParent/.test(lib) && /WS_CHILD/.test(lib) && /GetClientRect/.test(lib),
-  !/set_always_on_top\(true\)/.test(lib) && !/"alwaysOnTop": true/.test(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8')),
-  (() => {
-    const start = lib.indexOf('fn set_overlay_child_styles');
-    const end = start >= 0 ? lib.indexOf('fn embed_overlay_window', start) : -1;
-    const styles = start >= 0 && end > start ? lib.slice(start, end) : '';
-    const sizeBlock = styles.match(/if let Some\(size\) = size[\s\S]*?SWP_NOACTIVATE \| SWP_FRAMECHANGED/)?.[0] ?? '';
-    return /Some\(HWND_TOP\)/.test(sizeBlock) && !/SWP_NOZORDER/.test(sizeBlock);
-  })(),
-  (() => {
-    const hideOverlayWindowStart = lib.indexOf('fn hide_overlay_window');
-    const hideOverlayWindowEnd = hideOverlayWindowStart >= 0 ? lib.indexOf('fn refresh_overlay_window', hideOverlayWindowStart) : -1;
-    const hideOverlayWindow = hideOverlayWindowStart >= 0 && hideOverlayWindowEnd > hideOverlayWindowStart ? lib.slice(hideOverlayWindowStart, hideOverlayWindowEnd) : '';
-    return /window\.hide\(\)/.test(hideOverlayWindow) && /detach_overlay_window\(window\)/.test(hideOverlayWindow) && hideOverlayWindow.indexOf('window.hide()') < hideOverlayWindow.indexOf('detach_overlay_window(window)') && (lib.match(/hide_overlay_window\(&window\)/g)?.length ?? 0) >= 3 && !/let mut next_style = style \| WS_VISIBLE/.test(lib);
-  })(),
-  (() => {
-    const overlayChildStylesStart = lib.indexOf('fn set_overlay_child_styles');
-    const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
-    const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
-    return overlayChildStyles.indexOf('next_style |= WS_CHILD') >= 0 && overlayChildStyles.indexOf('next_style |= WS_CHILD') < overlayChildStyles.indexOf('SetParent(overlay_hwnd');
-  })(),
-  (() => {
-    const overlayChildStylesStart = lib.indexOf('fn set_overlay_child_styles');
-    const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
-    const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
-    return /if let Some\(size\) = size[\s\S]*?\} else \{[\s\S]*?SetWindowPos\([\s\S]*?SWP_NOMOVE \| SWP_NOSIZE \| SWP_NOZORDER \| SWP_NOACTIVATE \| SWP_FRAMECHANGED/.test(overlayChildStyles);
-  })(),
-  (() => {
-    const overlayChildStylesStart = lib.indexOf('fn set_overlay_child_styles');
-    const overlayChildStylesEnd = overlayChildStylesStart >= 0 ? lib.indexOf('fn embed_overlay_window', overlayChildStylesStart) : -1;
-    const overlayChildStyles = overlayChildStylesStart >= 0 && overlayChildStylesEnd > overlayChildStylesStart ? lib.slice(overlayChildStylesStart, overlayChildStylesEnd) : '';
-    return /GetParent/.test(overlayChildStyles) && /current_parent != Some\(parent_hwnd\)/.test(overlayChildStyles) && /current_parent\.is_some\(\)/.test(overlayChildStyles);
-  })(),
-  /frozenMeetingOrderRef/.test(overlay),
-  /aleLuduSlotCount/.test(overlay),
-  /src\.length > frozenMeetingOrderRef\.current\.length/.test(overlay),
-  !/connect\.connect\(gameState\.lobbyCode,\s*myPlayer\.clientId/.test(voice),
-  /setTopDownPanPosition/.test(voice) && !/pan\.positionY\.setValueAtTime\(panPos\[1\]/.test(voice),
-  /isStaleClientSocketUpdate/.test(voice),
-  (() => {
-    const vadHandler = voice.match(/socket\.on\('VAD',[\s\S]*?\n\t\t\}\);/)?.[0] ?? '';
-    return /const mappedClient = socketClientsRef\.current\[data\.socketId\]/.test(vadHandler) && /if \(!mappedClient\)/.test(vadHandler) && /const vadClientId = mappedClient\.clientId/.test(vadHandler) && /isStaleClientSocketUpdate\(vadClientId, data\.socketId\)/.test(vadHandler) && /\[vadClientId\]: data\.activity/.test(vadHandler) && /upsertClientConnection\(vadClientId/.test(vadHandler) && !/\?\? data\.client\.clientId/.test(vadHandler);
-  })(),
-  /preferSocketForClient/.test(voice) && /nextSocketIds\[client\.clientId\] !== socketId/.test(voice),
-  /currentLobby === lobbyCode/.test(voice) && /socket\.emit\('id', playerId, clientId\)/.test(voice),
-  /myPlayer\?\.id/.test(voice.match(/\}, \[connect\?\.connect[\s\S]*?\]\);/)?.[0] ?? '') && /gameState\.clientId/.test(voice.match(/\}, \[connect\?\.connect[\s\S]*?\]\);/)?.[0] ?? ''),
-  /\[gameState\.gameState, gameState\.players\]/.test(voice) && /let changed = false/.test(voice),
-  /const cameras = AmongUsMaps\[state\.map\]\?\.cameras \?\? \{\}/.test(voice) && /if \(!camerapos\)/.test(voice),
-  /REMOTE_AUDIO_TALKING_GRACE_MS/.test(voice) && /serverVadTalking/.test(voice),
-  !/document\.visibilityState === 'visible'/.test(overlay),
-  /appendMissingMeetingPlayers/.test(overlay),
-  /hasMissingMeetingPlayers/.test(overlay),
-  /meetingPlaceholder/.test(overlay) && /player: Player \| null/.test(overlay),
-  !/!remoteAudioState/.test(voice.match(/const serverVadTalking[\s\S]*?\);/)?.[0] ?? ''),
-  /else if \(tempTalking\[player\.clientId\]\)/.test(voice),
-  (() => {
-    const disconnectPeerStart = voice.indexOf('function disconnectPeer');
-    const disconnectPeerEnd = disconnectPeerStart >= 0 ? voice.indexOf('// Handle pushToTalk', disconnectPeerStart) : -1;
-    const disconnectPeerBody = disconnectPeerStart >= 0 && disconnectPeerEnd > disconnectPeerStart ? voice.slice(disconnectPeerStart, disconnectPeerEnd) : '';
-    const noConnectionStart = disconnectPeerBody.indexOf('if (!connection)');
-    const noConnectionReturn = noConnectionStart >= 0 ? disconnectPeerBody.indexOf('return;', noConnectionStart) : -1;
-    const noConnectionBranch = noConnectionStart >= 0 && noConnectionReturn > noConnectionStart ? disconnectPeerBody.slice(noConnectionStart, noConnectionReturn) : '';
-    return /disconnectAudioElement\(peer\)/.test(noConnectionBranch);
-  })(),
-  (() => {
-    const audioMonitorStart = voice.indexOf('function startPeerAudioMonitor');
-    const audioMonitorEnd = audioMonitorStart >= 0 ? voice.indexOf('function disconnectAudioElement', audioMonitorStart) : -1;
-    const audioMonitorBody = audioMonitorStart >= 0 && audioMonitorEnd > audioMonitorStart ? voice.slice(audioMonitorStart, audioMonitorEnd) : '';
-    return /const activeClientId = socketClientsRef\.current\[peer\]\?\.clientId;/.test(audioMonitorBody) && /if \(activeClientId === undefined\)/.test(audioMonitorBody) && /activeClientId !== monitor\.clientId/.test(audioMonitorBody) && /monitor\.clientId = activeClientId/.test(audioMonitorBody) && /updateClientAudioActivity\(monitor\.clientId/.test(audioMonitorBody) && !/\?\? monitor\.clientId/.test(audioMonitorBody) && !/updateClientAudioActivity\(clientId/.test(audioMonitorBody);
-  })(),
-];
-console.log(checks.filter((ok) => !ok).length);
+const [metricsPath, cargoFailRaw, typecheckFailRaw, buildFailRaw] = process.argv.slice(2);
+const metrics = JSON.parse(fs.readFileSync(metricsPath, 'utf8'));
+const cargoCheckFail = Number(cargoFailRaw);
+const typecheckFail = Number(typecheckFailRaw);
+const buildFail = Number(buildFailRaw);
+const purityHighlightScore =
+  metrics.staticScore + cargoCheckFail * 10000 + typecheckFail * 5000 + buildFail * 5000;
+console.log(`METRIC purity_highlight_score=${purityHighlightScore}`);
+console.log(`METRIC non_rust_runtime_files=${metrics.nonRustRuntimeFiles}`);
+console.log(`METRIC non_rust_runtime_loc=${metrics.nonRustRuntimeLoc}`);
+console.log(`METRIC highlight_static_failures=${metrics.highlightStaticFailures}`);
+console.log(`METRIC rust_meeting_source_failures=${metrics.rustMeetingSourceFailures}`);
+console.log(`METRIC frontend_surface_failures=${metrics.frontendSurfaceFailures}`);
+console.log(`METRIC cargo_check_fail=${cargoCheckFail}`);
+console.log(`METRIC typecheck_fail=${typecheckFail}`);
+console.log(`METRIC build_fail=${buildFail}`);
 NODE
-)
-
-bug_score=$((static_bug_checks + simulation_failures + cosmetic_failures + typecheck_fail * 10 + build_fail * 10 + rust_check_fail * 10))
-echo "METRIC simulation_failures=$simulation_failures"
-echo "METRIC cosmetic_failures=$cosmetic_failures"
-echo "METRIC typecheck_fail=$typecheck_fail"
-echo "METRIC build_fail=$build_fail"
-echo "METRIC rust_check_fail=$rust_check_fail"
-echo "METRIC bug_score=$bug_score"

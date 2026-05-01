@@ -1,19 +1,25 @@
-# Autoresearch: vision-gated immersive audio
+# Autoresearch: pure Rust program + data-sourced meeting highlights
 
 ## Objective
 
-Fix requested runtime audio issues without benchmark cheating:
+Overhaul Perfect Crewlink toward a pure-Rust product while fixing meeting highlights for normal HUD and AleLudu.
 
-- When **vision hearing** is enabled, proximity audio must not be audible beyond the local player's current light/vision radius.
-- Remote voices must not buzz, ring, glitch, or turn static-like during vent/camera/radio muffling or movement updates.
-- Directional audio should feel more focused and spatially precise without breaking existing peer/player mapping or meeting highlights.
+User-selected scope:
+
+- Replace the current TypeScript/React runtime with Rust-authored program code.
+- Remove hardcoded/screen-dynamic meeting highlight placement as the source of truth.
+- Always highlight the correct player and correct meeting card in normal and AleLudu meetings.
+- Best target architecture: Rust game reader emits exact `MeetingHud` card/player mapping and geometry; UI/overlay rendering consumes that Rust-owned data. Fallback heuristics may exist only as temporary compatibility, never as primary path.
 
 ## Metrics
 
-- **Primary**: bug_score (unitless, lower is better) — static + simulation regression score for known audio/overlay/cosmetic root causes.
-- **Secondary**: typecheck_fail — 0 means `npm run typecheck` passed, 1 means failed.
-- **Secondary**: build_fail — 0 means production Vite build passed.
-- **Secondary**: rust_check_fail — 0 means Rust `cargo check` passed.
+- **Primary**: `purity_highlight_score` (unitless, lower is better) — weighted score combining non-Rust runtime surface, highlight hardcode failures, Rust-sourced meeting-card failures, and build/check failures.
+- **Secondary**: `non_rust_runtime_files` — count of TypeScript/JavaScript runtime files still under `src/` plus frontend config files.
+- **Secondary**: `non_rust_runtime_loc` — line count for those non-Rust runtime files.
+- **Secondary**: `highlight_static_failures` — known bad highlight patterns still present.
+- **Secondary**: `rust_meeting_source_failures` — missing Rust meeting-card source-of-truth structures/reader path.
+- **Secondary**: `cargo_check_fail` — 0 means `cargo check --manifest-path src-tauri/Cargo.toml` passed.
+- **Secondary**: `typecheck_fail`, `build_fail` — temporary monitors while TypeScript/Vite still exist.
 
 ## How to Run
 
@@ -21,27 +27,27 @@ Fix requested runtime audio issues without benchmark cheating:
 
 ## Files in Scope
 
-- `src/renderer/Voice.tsx` — proximity range, VAD/audio activity, panner/gain/filter spatialization.
-- `src/renderer/Overlay.tsx` — meeting highlight regressions only if audio state affects highlights.
-- `src/renderer/Avatar.tsx` and `src/renderer/cosmetics.ts` — keep TOU Mira cosmetic regressions covered.
-- `src/main/GameReader.ts` and `src-tauri/src/game_session.rs` — keep current-outfit cosmetic reads covered.
-- `scripts/simulate-highlight-audio.mjs`, `scripts/simulate-cosmetics.mjs`, `autoresearch.sh` — simulation harness.
+- `src-tauri/src/**/*.rs` — Rust app shell, game memory reader, overlay/window control, future pure-Rust app logic.
+- `src-tauri/Cargo.toml`, `Cargo.lock`, `tauri.conf*.json` — Rust/Tauri build and dependency configuration.
+- `src/common/AmongUsState.ts`, `src/renderer/Overlay.tsx`, `src/renderer/Voice.tsx`, `src/renderer/**/*.tsx`, `src/main/**/*.ts` — current TypeScript runtime to migrate/remove.
+- `scripts/**`, `autoresearch.sh`, `autoresearch.md`, `autoresearch.ideas.md` — benchmark and simulation harnesses.
+- `package.json`, `tsconfig*.json`, `vite*.ts` — frontend config to shrink/remove as migration proceeds.
 
 ## Off Limits
 
-- Do not modify the voice server protocol beyond existing fields.
-- Do not fake metric output or bypass real validation.
-- Do not add dependencies unless absolutely necessary.
-- Do not commit local calibration/build artifacts (`.calib`, `editions`, nested `src-tauri/src-tauri`, halo config files, release assets).
+- Do not fake metrics or bypass checks.
+- Do not commit generated build outputs, `node_modules`, `dist*`, `src-tauri/target`, `.calib`, release artifacts, nested `src-tauri/src-tauri`.
+- Do not remove current working functionality without replacing it with Rust-owned equivalent or isolating it behind a clearly temporary compatibility path.
+- Do not make hardcoded AleLudu geometry the primary highlight source.
 
 ## Constraints
 
-- Keep changes surgical.
-- TypeScript typecheck, Vite build, and Rust check should stay green.
-- Preserve existing fixes: overlay Alt-Tab attachment, stable meeting slots, mapped voice activity, TOU Mira cosmetics, and current-outfit reads.
+- Prefer small, reviewable migration slices.
+- Rust must keep compiling after each kept experiment.
+- While TypeScript remains part of the runtime, keep `npm run typecheck` and `npm run build` passing.
+- New dependencies are allowed only when they directly reduce TypeScript/JavaScript product surface or enable Rust-native highlight/voice/UI replacement.
+- Highlight identity must use player/card IDs from game state, not color slots or DOM/screen guesses.
 
-## Current Hypotheses
+## What's Been Tried
 
-- Vision-only hearing is bypassed for impostors and padded by `+ 0.5`, so some players remain audible outside the visible radius.
-- Biquad filter `Q` values for camera/vent/radio muffling are too resonant or invalid (for example negative camera Q), causing ringing/static/buzzing.
-- Directional audio can feel too broad because distance rolloff and panner separation are conservative; a small focus factor and stronger rolloff may improve spatial precision while preserving hard max range.
+- 2026-05-01: Dirty previous overlay experiment changes reset at user request. New branch `autoresearch/pure-rust-highlight-2026-05-01` starts from clean tree.
