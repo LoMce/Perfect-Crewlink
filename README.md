@@ -158,14 +158,7 @@ sudo apt-get install -y \
 
 </details>
 
-</details>
-
-<img src="static/images/divider.svg" width="100%" alt="divider"/>
-
-## Project layout & commands
-
-<details>
-<summary><strong>Show repository layout and commands</strong></summary>
+### Project layout
 
 ```text
 src/          React renderer, overlay UI, settings, lobby browser, voice client
@@ -174,7 +167,7 @@ static/       Images, translations, avatars, and bundled assets
 scripts/      Build helpers and Tauri launch wrappers
 ```
 
-Useful commands:
+### Useful commands
 
 ```bash
 npm run dev:web        # Run renderer only
