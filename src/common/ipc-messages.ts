@@ -54,6 +54,7 @@ export interface ProgressInfo {
 
 export interface UpdateInfo {
 	version: string;
+	releaseUrl?: string;
 }
 
 export interface AutoUpdaterState {

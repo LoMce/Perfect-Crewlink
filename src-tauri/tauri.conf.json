@@ -62,6 +62,14 @@
         "bundleMediaFramework": true
       }
     },
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "installer/perfect-header.bmp",
+        "sidebarImage": "installer/perfect-sidebar.bmp",
+        "startMenuFolder": "Perfect Crewlink"
+      }
+    },
     "icon": [
       "icons/icon.ico",
       "icons/icon.png"

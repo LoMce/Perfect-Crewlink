@@ -11,10 +11,13 @@ use std::sync::{
     Arc,
 };
 use std::time::Duration;
-use tauri::{AppHandle, Manager, PhysicalSize, State, UserAttentionType, WebviewWindow, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, PhysicalSize, State, UserAttentionType, WebviewWindow, WindowEvent};
 
 const OFFSETS_BASE_URL: &str = "https://raw.githubusercontent.com/OhMyGuus/BetterCrewlink-Offsets/main";
 const OFFSETS_FALLBACK_URL: &str = "https://cdn.jsdelivr.net/gh/OhMyGuus/BetterCrewlink-Offsets@main";
+const UPDATE_EVENT: &str = "AUTO_UPDATER_STATE";
+const UPDATE_API_URL: &str = "https://api.github.com/repos/artriy/Perfect-Crewlink/releases/latest";
+const UPDATE_DOWNLOAD_URL: &str = "https://github.com/artriy/Perfect-Crewlink/releases/latest";
 
 #[derive(Serialize)]
 struct MigrationStatus {
@@ -34,6 +37,27 @@ struct OffsetLookupResponse {
 #[derive(Serialize)]
 struct OffsetsResponse {
     offsets: serde_json::Value,
+}
+
+#[derive(Deserialize)]
+struct GithubRelease {
+    tag_name: String,
+    html_url: String,
+    draft: bool,
+    prerelease: bool,
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateInfoPayload {
+    version: String,
+    release_url: String,
+}
+
+#[derive(Clone, Serialize)]
+struct AutoUpdaterPayload {
+    state: &'static str,
+    info: UpdateInfoPayload,
 }
 
 #[derive(Deserialize)]
@@ -90,9 +114,79 @@ fn get_system_locale(app: AppHandle) -> String {
     sys_locale::get_locale().unwrap_or_else(|| "en".to_string())
 }
 
+fn version_parts(version: &str) -> Vec<u64> {
+    version
+        .trim_start_matches(['v', 'V'])
+        .split(['.', '-', '+'])
+        .map(|part| {
+            part.chars()
+                .take_while(|character| character.is_ascii_digit())
+                .collect::<String>()
+                .parse::<u64>()
+                .unwrap_or(0)
+        })
+        .collect()
+}
+
+fn compare_versions(left: &str, right: &str) -> std::cmp::Ordering {
+    let left_parts = version_parts(left);
+    let right_parts = version_parts(right);
+    let length = left_parts.len().max(right_parts.len()).max(3);
+
+    for index in 0..length {
+        let left_part = left_parts.get(index).copied().unwrap_or(0);
+        let right_part = right_parts.get(index).copied().unwrap_or(0);
+        match left_part.cmp(&right_part) {
+            std::cmp::Ordering::Equal => {}
+            ordering => return ordering,
+        }
+    }
+
+    std::cmp::Ordering::Equal
+}
+
+fn check_for_app_updates(app: AppHandle) {
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(4));
+
+        let current_version = app.package_info().version.to_string();
+        let release = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(10))
+            .user_agent("Perfect Crewlink updater")
+            .build()
+            .and_then(|client| client.get(UPDATE_API_URL).send())
+            .and_then(|response| response.error_for_status())
+            .and_then(|response| response.json::<GithubRelease>());
+
+        let Ok(release) = release else {
+            return;
+        };
+
+        if release.draft || release.prerelease {
+            return;
+        }
+
+        let latest_version = release.tag_name.trim_start_matches('v').to_string();
+        if compare_versions(&latest_version, &current_version) != std::cmp::Ordering::Greater {
+            return;
+        }
+
+        let _ = app.emit(
+            UPDATE_EVENT,
+            AutoUpdaterPayload {
+                state: "available",
+                info: UpdateInfoPayload {
+                    version: latest_version,
+                    release_url: release.html_url,
+                },
+            },
+        );
+    });
+}
+
 #[tauri::command]
 fn trigger_app_update() -> Result<(), String> {
-    Ok(())
+    tauri_plugin_opener::open_url(UPDATE_DOWNLOAD_URL, None::<&str>).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -528,6 +622,8 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("lobbies") {
                 let _ = window.hide();
             }
+
+            check_for_app_updates(app.handle().clone());
 
             let app_handle = app.handle().clone();
             let overlay_controller_runtime = overlay_controller_runtime.clone();

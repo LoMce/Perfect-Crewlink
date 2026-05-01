@@ -473,7 +473,7 @@ export default function App(): JSX.Element {
 									) : null}
 									<Dialog fullWidth open={updaterState.state !== 'unavailable' && diaOpen}>
 										{updaterState.state === 'available' && updaterState.info && (
-											<DialogTitle>Update v{updaterState.info.version}</DialogTitle>
+											<DialogTitle>Perfect Crewlink v{updaterState.info.version} is ready</DialogTitle>
 										)}
 										{updaterState.state === 'error' && <DialogTitle>Updater Error</DialogTitle>}
 										{updaterState.state === 'downloading' && <DialogTitle>Updating...</DialogTitle>}
@@ -487,10 +487,7 @@ export default function App(): JSX.Element {
 												</>
 											)}
 											{updaterState.state === 'available' && (
-												<>
-													<LinearProgress variant="indeterminate" />
-													<DialogContentText>Update now or later?</DialogContentText>
-												</>
+												<DialogContentText>A newer release is available on GitHub. Download the newest setup or portable build now?</DialogContentText>
 											)}
 											{updaterState.state === 'error' && (
 												<DialogContentText color="error">{String(updaterState.error)}</DialogContentText>
@@ -508,7 +505,14 @@ export default function App(): JSX.Element {
 										)}
 										{updaterState.state === 'available' && (
 											<DialogActions>
-												<Button onClick={() => bridge.send('update-app')}>Now</Button>
+												<Button
+													onClick={() => {
+														void bridge.openExternal(updaterState.info?.releaseUrl ?? 'https://github.com/artriy/Perfect-Crewlink/releases/latest');
+														setDiaOpen(false);
+													}}
+												>
+													Download
+												</Button>
 												<Button onClick={() => setDiaOpen(false)}>Later</Button>
 											</DialogActions>
 										)}
