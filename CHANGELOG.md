@@ -1,43 +1,55 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:C51111,50:24C8DB,100:C51111&height=140&section=header&text=Changelog&fontSize=52&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Perfect%20Crewlink%20release%20notes&descSize=16&descAlignY=60&descAlign=50" width="100%" alt="Changelog"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:C51111,50:24C8DB,100:C51111&height=140&section=header&text=Changelog&fontSize=52&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Meetings%2C%20voice%2C%20and%20TOU%20Mira%20cosmetics%20fixed&descSize=16&descAlignY=60&descAlign=50" width="100%" alt="Changelog"/>
+
+<br/>
+
+<img src="https://img.shields.io/badge/Perfect_Crewlink-v1.0.5-C51111?style=for-the-badge&logo=rocket&logoColor=white" alt="Perfect Crewlink v1.0.5"/>
+&nbsp;
+<img src="https://img.shields.io/badge/RELEASED-2026--05--01-24C8DB?style=for-the-badge" alt="released"/>
+&nbsp;
+<img src="https://img.shields.io/badge/STATUS-STABLE-2ed573?style=for-the-badge" alt="stable"/>
 
 </div>
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
-# <img src="https://img.shields.io/badge/v1.0.5-C51111?style=for-the-badge&logo=rocket&logoColor=white" alt="v1.0.5"/> &nbsp; Reliable Meetings + Voice
+# <img src="https://img.shields.io/badge/v1.0.5-C51111?style=for-the-badge&logo=rocket&logoColor=white" alt="v1.0.5"/> &nbsp; The Reliable Meetings & Voice Release
 
-<p>
-<img src="https://img.shields.io/badge/RELEASED-2026--05--01-24C8DB?style=for-the-badge" alt="released"/>
-&nbsp;
-<img src="https://img.shields.io/badge/STATUS-STABLE-2ed573?style=for-the-badge" alt="stable"/>
-&nbsp;
-<img src="https://img.shields.io/badge/HIGHLIGHT-ALELUDU_%2B_VOICE-8b5cf6?style=for-the-badge" alt="highlight"/>
-</p>
+> **Perfect Crewlink v1.0.5** makes meeting highlights, voice status, and TOU Mira cosmetics match what is really happening in-game.
 
-> **Perfect Crewlink v1.0.5** focuses on correctness: meeting highlights follow real game cards, TOU Mira cosmetics render again, and stale voice links show as broken instead of pretending to work.
+<div align="center">
+
+| <img src="https://img.shields.io/badge/MEETINGS-RUST_CARDS-24C8DB?style=for-the-badge" alt="meetings"/> | <img src="https://img.shields.io/badge/VOICE-STALE_STREAMS_FIXED-8b5cf6?style=for-the-badge" alt="voice"/> | <img src="https://img.shields.io/badge/COSMETICS-TOU_MIRA_READY-2ed573?style=for-the-badge" alt="cosmetics"/> |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Real `MeetingHud` card IDs                                                                              | Dropped voice shows immediately                                                                            | Active outfit clothes render                                                                                  |
+
+</div>
+
+<img src="static/images/divider.svg" width="100%" alt="divider"/>
 
 ### <img src="https://img.shields.io/badge/-MEETING_CARDS-24C8DB?style=flat-square" height="22"/>
 
 - <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Highlights use Rust-read `MeetingHud.playerStates` / `PlayerVoteArea.TargetPlayerId`.
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Guesses, deaths, swaps, and disconnects no longer reshuffle card highlights.
+- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Guesses, deaths, swaps, and disconnects no longer move highlights to the wrong card.
 - <img src="https://img.shields.io/badge/NEW-2ed573?style=flat-square"/> &nbsp; Added Settings → Overlay → **AleLudu meeting layout**.
 
 ### <img src="https://img.shields.io/badge/-VOICE_STATUS-8b5cf6?style=flat-square" height="22"/>
 
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Crewlink now detects stale remote audio streams and failed WebRTC transports.
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Players whose voice drops now show the no-voice/disconnected icon without waiting for someone else to talk.
+- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Stale remote audio streams and failed WebRTC transports now show as no-voice/disconnected.
+- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; You no longer need someone else to talk before noticing a broken voice link.
 
-### <img src="https://img.shields.io/badge/-COSMETICS-2ed573?style=flat-square" height="22"/>
+### <img src="https://img.shields.io/badge/-TOU_MIRA_COSMETICS-2ed573?style=flat-square" height="22"/>
 
-- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; TOU Mira hats, skins, visors, and clothing load from active outfit data.
+- <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Hats, skins, visors, and clothing load from active outfit data.
 - <img src="https://img.shields.io/badge/FIXED-C51111?style=flat-square"/> &nbsp; Outfit dictionary order no longer drops visible clothes from Crewlink icons.
 
-### <img src="https://img.shields.io/badge/-PACKAGING-2ed573?style=flat-square" height="22"/>
+<img src="static/images/divider.svg" width="100%" alt="divider"/>
 
-- <img src="https://img.shields.io/badge/Windows-Installer-0078D4?style=flat-square&logo=windows11&logoColor=white"/> &nbsp; `Perfect Crewlink_1.0.5_x64-setup.exe`
-- <img src="https://img.shields.io/badge/Windows-Portable-0078D4?style=flat-square&logo=windows11&logoColor=white"/> &nbsp; `perfectcrewlink.exe`
+### <img src="https://img.shields.io/badge/-DOWNLOADS-2ed573?style=flat-square" height="22"/>
+
+- <img src="https://img.shields.io/badge/Windows_Installer-0078D4?style=flat-square&logo=windows11&logoColor=white"/> &nbsp; `Perfect Crewlink_1.0.5_x64-setup.exe`
+- <img src="https://img.shields.io/badge/Windows_Portable-0078D4?style=flat-square&logo=windows11&logoColor=white"/> &nbsp; `perfectcrewlink.exe`
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
