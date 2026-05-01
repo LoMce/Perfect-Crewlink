@@ -1017,6 +1017,10 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		meetingStartPlayers,
 	]);
 	const renderPlayers = players ?? [];
+	const rustMeetingCards =
+		gameState.gameState === GameState.DISCUSSION
+			? gameState.meetingHud?.cards
+			: undefined;
 	const aleLuduRenderPlayers = renderPlayers.filter(
 		isVisibleAleLuduMeetingPlayer,
 	);
@@ -1034,6 +1038,24 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		return map;
 	})();
 	const overlaySlots: MeetingOverlaySlot[] = (() => {
+		const playerById = new Map(
+			renderPlayers.map((player) => [player.id, player]),
+		);
+		if (rustMeetingCards?.length) {
+			return rustMeetingCards.map((card, index) => {
+				const player = card.visible
+					? (playerById.get(card.playerId) ?? null)
+					: null;
+				return {
+					key: player
+						? `meetingCard-${card.playerId}`
+						: `meetingCardPlaceholder-${card.playerId}-${index}`,
+					player,
+					slotIndex: card.slotIndex ?? index,
+				};
+			});
+		}
+
 		const order = frozenMeetingOrderRef.current;
 		if (aleLuduColumns > 0) {
 			return aleLuduRenderPlayers.map((player, index) => ({
@@ -1051,9 +1073,6 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 			}));
 		}
 
-		const playerById = new Map(
-			renderPlayers.map((player) => [player.id, player]),
-		);
 		return order.map((id, index) => {
 			const player = playerById.get(id) ?? null;
 			return {
@@ -1068,9 +1087,10 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 	const canRenderMeetingHud =
 		gameState.gameState === GameState.DISCUSSION && renderPlayers.length > 0;
 	const aleLuduSlotCount =
-		aleLuduColumns > 0
+		rustMeetingCards?.length ??
+		(aleLuduColumns > 0
 			? aleLuduRenderPlayers.length
-			: (frozenMeetingOrderRef.current?.length ?? renderPlayers.length);
+			: (frozenMeetingOrderRef.current?.length ?? renderPlayers.length));
 	const aleLuduRows =
 		aleLuduColumns > 0
 			? Math.max(1, Math.ceil(aleLuduSlotCount / aleLuduColumns))
@@ -1092,9 +1112,10 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 
 		const frameId = window.requestAnimationFrame(() => {
 			const nextOverlayRects: Record<number, MeasuredRect | null> = {};
-			for (const player of aleLuduColumns > 0
-				? aleLuduRenderPlayers
-				: renderPlayers) {
+			for (const { player } of overlaySlots) {
+				if (!player) {
+					continue;
+				}
 				nextOverlayRects[player.id] = measureRect(
 					overlayRefs.current[player.id] ?? null,
 				);
@@ -1112,9 +1133,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		};
 	}, [
 		showAleLuduDebug,
-		aleLuduColumns,
-		aleLuduRenderPlayers,
-		renderPlayers,
+		overlaySlots,
 		windowWidth,
 		windowheight,
 		aleLuduContainerHeight,
