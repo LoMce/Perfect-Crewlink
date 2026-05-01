@@ -6,8 +6,6 @@
 
 <img src="static/images/divider.svg" width="100%" alt="divider"/>
 
-# Perfect Crewlink v1.0.6 — Lobby Alerts & Soft Voice
-
 ### Added
 
 - Lobby Browser bell/watch notifications for joinable public lobbies.
