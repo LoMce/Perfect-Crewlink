@@ -28,6 +28,10 @@ export interface MeetingHud {
 	state: number;
 	source: string;
 	oldHud: boolean;
+	overlayLeft?: number | null;
+	overlayTop?: number | null;
+	overlayWidth?: number | null;
+	overlayHeight?: number | null;
 	cards: MeetingHudCard[];
 }
 
@@ -40,6 +44,10 @@ export interface MeetingHudCard {
 	worldX?: number | null;
 	worldY?: number | null;
 	worldZ?: number | null;
+	overlayLeft?: number | null;
+	overlayTop?: number | null;
+	overlayWidth?: number | null;
+	overlayHeight?: number | null;
 	width?: number | null;
 	height?: number | null;
 }

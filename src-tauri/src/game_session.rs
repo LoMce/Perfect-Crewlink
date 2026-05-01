@@ -59,12 +59,31 @@ const PLAYER_VOTE_AREA_AM_DEAD_OFFSET_X86: u64 = 0x59;
 const IL2CPP_ARRAY_LENGTH_OFFSET_X86: u64 = 0x0c;
 const IL2CPP_ARRAY_DATA_OFFSET_X86: u64 = 0x10;
 const VANILLA_MEETING_COLUMNS: usize = 3;
+const ALELUDU_MEETING_OVERLAY_LEFT_PCT: f32 = 8.05;
+const ALELUDU_MEETING_OVERLAY_TOP_PCT: f32 = 11.95;
+const ALELUDU_MEETING_OVERLAY_WIDTH_PCT: f32 = 83.9;
+const ALELUDU_MEETING_OVERLAY_HEIGHT_PCT: f32 = 76.1;
+const ALELUDU_TABLET_OVERLAY_TOP_PCT: f32 = 12.0;
+const ALELUDU_CARD_COLUMNS: usize = 4;
+const ALELUDU_CARD_WIDTH_PCT: [f32; ALELUDU_CARD_COLUMNS] = [22.6, 22.5, 22.6, 22.6];
+const ALELUDU_CARD_CENTER_PCT: [f32; ALELUDU_CARD_COLUMNS] = [13.8, 38.3, 62.4, 86.9];
+const ALELUDU_CARD_ROW0_CENTER_PCT: f32 = 5.0;
+const ALELUDU_CARD_ROW_HEIGHT_PCT: f32 = 10.0;
+const ALELUDU_CARD_ROW_GAP_PCT: f32 = 2.4;
 
 #[derive(Clone, Copy)]
 struct Vec3 {
     x: f32,
     y: f32,
     z: f32,
+}
+
+#[derive(Clone, Copy)]
+struct OverlayRectPct {
+    left: f32,
+    top: f32,
+    width: f32,
+    height: f32,
 }
 
 #[derive(Clone, Copy)]
@@ -94,6 +113,10 @@ pub struct MeetingHudCard {
     pub world_x: Option<f32>,
     pub world_y: Option<f32>,
     pub world_z: Option<f32>,
+    pub overlay_left: Option<f32>,
+    pub overlay_top: Option<f32>,
+    pub overlay_width: Option<f32>,
+    pub overlay_height: Option<f32>,
     pub width: Option<f32>,
     pub height: Option<f32>,
 }
@@ -104,6 +127,10 @@ pub struct MeetingHudSnapshot {
     pub state: i32,
     pub source: String,
     pub old_hud: bool,
+    pub overlay_left: Option<f32>,
+    pub overlay_top: Option<f32>,
+    pub overlay_width: Option<f32>,
+    pub overlay_height: Option<f32>,
     pub cards: Vec<MeetingHudCard>,
 }
 
@@ -1283,6 +1310,30 @@ impl AmongUsReader {
         Ok(())
     }
 
+    fn aleludu_meeting_overlay_rect() -> OverlayRectPct {
+        OverlayRectPct {
+            left: ALELUDU_MEETING_OVERLAY_LEFT_PCT,
+            top: ALELUDU_MEETING_OVERLAY_TOP_PCT,
+            width: ALELUDU_MEETING_OVERLAY_WIDTH_PCT,
+            height: ALELUDU_MEETING_OVERLAY_HEIGHT_PCT,
+        }
+    }
+
+    fn aleludu_card_overlay_rect(slot_index: usize) -> OverlayRectPct {
+        let column = slot_index % ALELUDU_CARD_COLUMNS;
+        let row = (slot_index / ALELUDU_CARD_COLUMNS) as f32;
+        let width = ALELUDU_CARD_WIDTH_PCT[column];
+        let top_center = ALELUDU_CARD_ROW0_CENTER_PCT
+            + row * (ALELUDU_CARD_ROW_HEIGHT_PCT + ALELUDU_CARD_ROW_GAP_PCT);
+
+        OverlayRectPct {
+            left: ALELUDU_CARD_CENTER_PCT[column] - width / 2.0,
+            top: ALELUDU_TABLET_OVERLAY_TOP_PCT + top_center - ALELUDU_CARD_ROW_HEIGHT_PCT / 2.0,
+            width,
+            height: ALELUDU_CARD_ROW_HEIGHT_PCT,
+        }
+    }
+
     fn read_meeting_hud(
         &mut self,
         meeting_hud: u64,
@@ -1301,10 +1352,15 @@ impl AmongUsReader {
         }
 
         if let Some(cards) = self.read_meeting_cards_from_player_vote_areas(meeting_hud, players) {
+            let overlay_rect = Self::aleludu_meeting_overlay_rect();
             return Some(MeetingHudSnapshot {
                 state: meeting_hud_state,
                 source: "player_vote_area".to_string(),
                 old_hud: self.old_meeting_hud,
+                overlay_left: Some(overlay_rect.left),
+                overlay_top: Some(overlay_rect.top),
+                overlay_width: Some(overlay_rect.width),
+                overlay_height: Some(overlay_rect.height),
                 cards,
             });
         }
@@ -1411,6 +1467,8 @@ impl AmongUsReader {
                         _ => (None, None, None),
                     };
 
+                    let overlay_rect = Self::aleludu_card_overlay_rect(slot_index);
+
                     MeetingHudCard {
                         slot_index: slot_index as u32,
                         player_id: card.player_id,
@@ -1422,6 +1480,10 @@ impl AmongUsReader {
                         world_x,
                         world_y,
                         world_z,
+                        overlay_left: Some(overlay_rect.left),
+                        overlay_top: Some(overlay_rect.top),
+                        overlay_width: Some(overlay_rect.width),
+                        overlay_height: Some(overlay_rect.height),
                         width: None,
                         height: None,
                     }
