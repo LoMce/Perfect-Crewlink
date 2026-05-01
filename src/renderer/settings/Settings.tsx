@@ -908,6 +908,13 @@ const Settings: React.FC<SettingsProps> = function ({ t, open, onClose }: Settin
 								onChange={(_, checked: boolean) => setSettings('meetingOverlay', checked)}
 								control={<Checkbox />}
 							/>
+							<FormControlLabel
+								className={classes.formLabel}
+								label="AleLudu meeting layout"
+								checked={settings.aleLuduMode}
+								onChange={(_, checked: boolean) => setSettings('aleLuduMode', checked)}
+								control={<Checkbox />}
+							/>
 							<TextField
 								fullWidth
 								select

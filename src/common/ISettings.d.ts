@@ -19,6 +19,7 @@ export interface ISettings {
 	overlayPosition: string;
 	enableOverlay: boolean;
 	meetingOverlay: boolean;
+	aleLuduMode: boolean;
 	startMuted: boolean;
 	startDeafened: boolean;
 

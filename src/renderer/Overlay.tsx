@@ -284,6 +284,7 @@ const Overlay: React.FC = function () {
 						gameState={gameState}
 						voiceState={voiceState}
 						playerColors={playerColors}
+						aleLuduMode={settings.aleLuduMode}
 					/>
 				)}
 			{settings.overlayPosition !== "hidden" && (
@@ -538,6 +539,7 @@ interface MeetingHudProps {
 	gameState: AmongUsState;
 	voiceState: VoiceState;
 	playerColors: string[][];
+	aleLuduMode: boolean;
 }
 
 function isClientVoiceStateFresh(
@@ -580,10 +582,76 @@ function isMeetingPlayerTalking(
 	);
 }
 
+const ALELUDU_COLUMN_COUNT = 4;
+const ALELUDU_CARD_WIDTH_PCT = [22.6, 22.5, 22.6, 22.6];
+const ALELUDU_CARD_CENTER_PCT = [13.8, 38.3, 62.4, 86.9];
+const ALELUDU_CARD_ROW0_CENTER_PCT = 5.0;
+const ALELUDU_CARD_ROW_HEIGHT_PCT = 10.0;
+const ALELUDU_CARD_ROW_GAP_PCT = 2.4;
+const ALELUDU_MEETING_HUD_RECT = {
+	left: 8.05,
+	top: 11.95,
+	width: 83.9,
+	height: 76.1,
+};
+const ALELUDU_TABLET_RECT = {
+	left: 0,
+	top: 12.0,
+	width: 100.0,
+	height: 100.0,
+};
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === "number" && Number.isFinite(value);
+}
+
+function rectStyle(rect: {
+	left?: number | null;
+	top?: number | null;
+	width?: number | null;
+	height?: number | null;
+}): CSSProperties | undefined {
+	if (
+		!isFiniteNumber(rect.left) ||
+		!isFiniteNumber(rect.top) ||
+		!isFiniteNumber(rect.width) ||
+		!isFiniteNumber(rect.height)
+	) {
+		return undefined;
+	}
+
+	return {
+		position: "absolute",
+		left: `${rect.left}%`,
+		top: `${rect.top}%`,
+		width: `${rect.width}%`,
+		height: `${rect.height}%`,
+		display: "block",
+		margin: 0,
+	};
+}
+
+function aleLuduCardStyle(index: number): CSSProperties | undefined {
+	const column = index % ALELUDU_COLUMN_COUNT;
+	const row = Math.floor(index / ALELUDU_COLUMN_COUNT);
+	const width = ALELUDU_CARD_WIDTH_PCT[column];
+	const topCenter =
+		ALELUDU_CARD_ROW0_CENTER_PCT +
+		row * (ALELUDU_CARD_ROW_HEIGHT_PCT + ALELUDU_CARD_ROW_GAP_PCT);
+
+	return rectStyle({
+		left: ALELUDU_CARD_CENTER_PCT[column] - width / 2,
+		top: topCenter - ALELUDU_CARD_ROW_HEIGHT_PCT / 2,
+		width,
+		height: ALELUDU_CARD_ROW_HEIGHT_PCT,
+	});
+}
+
 const MeetingHud: React.FC<MeetingHudProps> = ({
 	voiceState,
 	gameState,
 	playerColors,
+	aleLuduMode,
 }: MeetingHudProps) => {
 	const [windowWidth, windowheight] = useWindowSize();
 	const [width, height] = useMemo(
@@ -602,6 +670,13 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		height,
 		oldHud: gameState.oldMeetingHud,
 	});
+	const useAleLuduLayout = aleLuduMode && !gameState.oldMeetingHud;
+	const meetingHudStyle = useAleLuduLayout
+		? { ...rectStyle(ALELUDU_MEETING_HUD_RECT), transform: "none" }
+		: undefined;
+	const tabletContainerStyle = useAleLuduLayout
+		? rectStyle(ALELUDU_TABLET_RECT)
+		: undefined;
 	const overlays = rustMeetingCards.map((card, index) => {
 		const player = card.visible
 			? (playerById.get(card.playerId) ?? null)
@@ -609,13 +684,18 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		const key = player
 			? `meetingCard-${card.playerId}`
 			: `meetingCardPlaceholder-${card.playerId}-${index}`;
+		const cardStyle = useAleLuduLayout ? aleLuduCardStyle(index) : undefined;
 
 		if (!player) {
 			return (
 				<div
 					key={key}
 					className={classes.playerContainer}
-					style={{ opacity: 0, pointerEvents: "none" }}
+					style={{
+						...cardStyle,
+						opacity: 0,
+						pointerEvents: "none",
+					}}
 				/>
 			);
 		}
@@ -630,6 +710,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 				key={key}
 				className={classes.playerContainer}
 				style={{
+					...cardStyle,
 					opacity: talking ? 1 : 0,
 					border: "solid",
 					borderWidth: "2px",
@@ -643,8 +724,10 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 	if (rustMeetingCards.length === 0) return null;
 
 	return (
-		<div className={classes.meetingHud}>
-			<div className={classes.tabletContainer}>{overlays}</div>
+		<div className={classes.meetingHud} style={meetingHudStyle}>
+			<div className={classes.tabletContainer} style={tabletContainerStyle}>
+				{overlays}
+			</div>
 		</div>
 	);
 };

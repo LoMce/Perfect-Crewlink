@@ -49,8 +49,8 @@ const RAINBOW_COLOR_ID: i32 = -99234;
 const MINI_REGION_INSTALL_CONFIG: &str = "at.duikbo.regioninstall.cfg";
 
 // 2024 x86 IL2CPP field offsets from .calib/dump/dump.cs. Used only as an
-// authoritative MeetingHud card identity source; unsupported layouts fall back
-// to the normal player list snapshot instead of guessing.
+// authoritative MeetingHud card identity source; unsupported layouts do not
+// emit meeting cards instead of guessing card order.
 const MEETING_HUD_VOTE_ORIGIN_OFFSET_X86: u64 = 0x40;
 const MEETING_HUD_VOTE_BUTTON_OFFSETS_OFFSET_X86: u64 = 0x4c;
 const MEETING_HUD_PLAYER_STATES_OFFSET_X86: u64 = 0x5c;
@@ -725,6 +725,8 @@ struct AmongUsReader {
     colors_initialized: bool,
     rainbow_color: i32,
     player_colors: Vec<[String; 2]>,
+    meeting_card_order_hud: u64,
+    meeting_card_order: Vec<u32>,
 }
 
 impl AmongUsReader {
@@ -751,6 +753,8 @@ impl AmongUsReader {
             colors_initialized: false,
             rainbow_color: -9999,
             player_colors: default_player_colors(),
+            meeting_card_order_hud: 0,
+            meeting_card_order: Vec::new(),
         })
     }
 
@@ -1280,13 +1284,20 @@ impl AmongUsReader {
     }
 
     fn read_meeting_hud(
-        &self,
+        &mut self,
         meeting_hud: u64,
         meeting_hud_state: i32,
         players: &[Player],
     ) -> Option<MeetingHudSnapshot> {
         if meeting_hud == 0 || meeting_hud_state >= 4 {
+            self.meeting_card_order_hud = 0;
+            self.meeting_card_order.clear();
             return None;
+        }
+
+        if self.old_game_state != GAME_STATE_DISCUSSION || self.meeting_card_order_hud != meeting_hud {
+            self.meeting_card_order_hud = meeting_hud;
+            self.meeting_card_order.clear();
         }
 
         if let Some(cards) = self.read_meeting_cards_from_player_vote_areas(meeting_hud, players) {
@@ -1298,33 +1309,11 @@ impl AmongUsReader {
             });
         }
 
-        let cards = players
-            .iter()
-            .enumerate()
-            .map(|(slot_index, player)| MeetingHudCard {
-                slot_index: slot_index as u32,
-                player_id: player.id,
-                client_id: Some(player.client_id),
-                visible: !player.disconnected && !player.bugged && !player.is_dummy,
-                am_dead: player.is_dead,
-                world_x: None,
-                world_y: None,
-                world_z: None,
-                width: None,
-                height: None,
-            })
-            .collect();
-
-        Some(MeetingHudSnapshot {
-            state: meeting_hud_state,
-            source: "player_list_fallback".to_string(),
-            old_hud: self.old_meeting_hud,
-            cards,
-        })
+        None
     }
 
     fn read_meeting_cards_from_player_vote_areas(
-        &self,
+        &mut self,
         meeting_hud: u64,
         players: &[Player],
     ) -> Option<Vec<MeetingHudCard>> {
@@ -1377,7 +1366,24 @@ impl AmongUsReader {
             return None;
         }
 
-        raw_cards.sort_by_key(|card| card.am_dead);
+        if self.meeting_card_order.is_empty() {
+            raw_cards.sort_by_key(|card| card.am_dead);
+        } else {
+            let mut by_player_id: HashMap<u32, RawMeetingCard> = raw_cards
+                .into_iter()
+                .map(|card| (card.player_id, card))
+                .collect();
+            let mut ordered_cards = Vec::with_capacity(by_player_id.len());
+            for player_id in &self.meeting_card_order {
+                if let Some(card) = by_player_id.remove(player_id) {
+                    ordered_cards.push(card);
+                }
+            }
+            ordered_cards.extend(by_player_id.into_values());
+            raw_cards = ordered_cards;
+        }
+        self.meeting_card_order = raw_cards.iter().map(|card| card.player_id).collect();
+
         let vote_origin = self
             .read_vec3_absolute(meeting_hud + MEETING_HUD_VOTE_ORIGIN_OFFSET_X86)
             .ok();
@@ -1585,8 +1591,8 @@ impl AmongUsReader {
         };
         let mut shifted_color = -1;
 
-        if name.is_empty() && parsed.outfits_ptr != 0 {
-            self.read_dictionary(parsed.outfits_ptr, 6, |reader, key_ptr, value_ptr, index| {
+        if parsed.outfits_ptr != 0 {
+            self.read_dictionary(parsed.outfits_ptr, 16, |reader, key_ptr, value_ptr, _index| {
                 let Ok(key) = reader.read_i32_absolute(key_ptr) else {
                     return;
                 };
@@ -1594,37 +1600,56 @@ impl AmongUsReader {
                     return;
                 };
 
-                if key == 0 && index == 0 {
-                    if let Ok(name_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.player_name)
-                    {
-                        name = strip_rich_text(&reader.read_string(name_ptr, 1000).unwrap_or_default());
+                if key == current_outfit as i32 {
+                    if key == 0 {
+                        if let Ok(name_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.player_name)
+                        {
+                            name = strip_rich_text(&reader.read_string(name_ptr, 1000).unwrap_or_default());
+                        }
+                        parsed.color = reader
+                            .read_u32(outfit_ptr, &reader.offsets.player.outfit.color_id)
+                            .map(|value| value as i32)
+                            .unwrap_or(parsed.color);
+                    } else {
+                        shifted_color = reader
+                            .read_u32(outfit_ptr, &reader.offsets.player.outfit.color_id)
+                            .map(|value| value as i32)
+                            .unwrap_or(-1);
+                    }
+                    if let Ok(hat_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.hat_id) {
+                        parsed.hat = reader.read_string(hat_ptr, 200).unwrap_or_default();
+                    }
+                    if let Ok(skin_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.skin_id) {
+                        parsed.skin = reader.read_string(skin_ptr, 200).unwrap_or_default();
+                    }
+                    if let Ok(visor_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.visor_id) {
+                        parsed.visor = reader.read_string(visor_ptr, 200).unwrap_or_default();
+                    }
+                } else if key == 0 {
+                    if name.is_empty() {
+                        if let Ok(name_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.player_name)
+                        {
+                            name = strip_rich_text(&reader.read_string(name_ptr, 1000).unwrap_or_default());
+                        }
                     }
                     parsed.color = reader
                         .read_u32(outfit_ptr, &reader.offsets.player.outfit.color_id)
                         .map(|value| value as i32)
                         .unwrap_or(parsed.color);
-                    if let Ok(hat_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.hat_id) {
-                        parsed.hat = reader.read_string(hat_ptr, 200).unwrap_or_default();
+                    if parsed.hat.is_empty() {
+                        if let Ok(hat_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.hat_id) {
+                            parsed.hat = reader.read_string(hat_ptr, 200).unwrap_or_default();
+                        }
                     }
-                    if let Ok(skin_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.skin_id) {
-                        parsed.skin = reader.read_string(skin_ptr, 200).unwrap_or_default();
+                    if parsed.skin.is_empty() {
+                        if let Ok(skin_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.skin_id) {
+                            parsed.skin = reader.read_string(skin_ptr, 200).unwrap_or_default();
+                        }
                     }
-                    if let Ok(visor_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.visor_id) {
-                        parsed.visor = reader.read_string(visor_ptr, 200).unwrap_or_default();
-                    }
-                } else if key == current_outfit as i32 {
-                    shifted_color = reader
-                        .read_u32(outfit_ptr, &reader.offsets.player.outfit.color_id)
-                        .map(|value| value as i32)
-                        .unwrap_or(-1);
-                    if let Ok(hat_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.hat_id) {
-                        parsed.hat = reader.read_string(hat_ptr, 200).unwrap_or_default();
-                    }
-                    if let Ok(skin_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.skin_id) {
-                        parsed.skin = reader.read_string(skin_ptr, 200).unwrap_or_default();
-                    }
-                    if let Ok(visor_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.visor_id) {
-                        parsed.visor = reader.read_string(visor_ptr, 200).unwrap_or_default();
+                    if parsed.visor.is_empty() {
+                        if let Ok(visor_ptr) = reader.read_pointer(outfit_ptr, &reader.offsets.player.outfit.visor_id) {
+                            parsed.visor = reader.read_string(visor_ptr, 200).unwrap_or_default();
+                        }
                     }
                 }
             });
