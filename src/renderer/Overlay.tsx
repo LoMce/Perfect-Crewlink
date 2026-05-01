@@ -837,6 +837,17 @@ function isVisibleAleLuduMeetingPlayer(player: Player): boolean {
 	return !player.disconnected && !player.bugged && !player.isDummy;
 }
 
+function visibleMeetingSlotPlayer(
+	player: Player | null,
+	aleLuduColumns: number,
+): Player | null {
+	if (!player) return null;
+	if (aleLuduColumns > 0 && !isVisibleAleLuduMeetingPlayer(player)) {
+		return null;
+	}
+	return player;
+}
+
 function isClientVoiceStateFresh(
 	player: Player,
 	voiceState: VoiceState,
@@ -1021,22 +1032,6 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		gameState.gameState === GameState.DISCUSSION
 			? gameState.meetingHud?.cards
 			: undefined;
-	const aleLuduRenderPlayers = renderPlayers.filter(
-		isVisibleAleLuduMeetingPlayer,
-	);
-	// Stable card-slot index per player ID, captured at meeting start via frozenMeetingOrderRef.
-	// Using this instead of `renderPlayers.map`'s array index means that if TOU removes a player
-	// from gameState.players mid-meeting (guess / Jailor execute can drop the entry entirely,
-	// not just flip isDead), the remaining players keep their original column/row positions
-	// — the dead player's slot just renders empty instead of shifting everything after it up.
-	const frozenCardIndexById: Map<number, number> = (() => {
-		const order = frozenMeetingOrderRef.current;
-		const map = new Map<number, number>();
-		if (order) {
-			order.forEach((id, idx) => map.set(id, idx));
-		}
-		return map;
-	})();
 	const overlaySlots: MeetingOverlaySlot[] = (() => {
 		const playerById = new Map(
 			renderPlayers.map((player) => [player.id, player]),
@@ -1057,24 +1052,19 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		}
 
 		const order = frozenMeetingOrderRef.current;
-		if (aleLuduColumns > 0) {
-			return aleLuduRenderPlayers.map((player, index) => ({
-				key: `player-${player.id}`,
-				player,
-				slotIndex: index,
-			}));
-		}
-
 		if (!order) {
 			return renderPlayers.map((player, index) => ({
-				key: `player-${player.id}`,
-				player,
+				key: `player-${player.id}-${index}`,
+				player: visibleMeetingSlotPlayer(player, aleLuduColumns),
 				slotIndex: index,
 			}));
 		}
 
 		return order.map((id, index) => {
-			const player = playerById.get(id) ?? null;
+			const player = visibleMeetingSlotPlayer(
+				playerById.get(id) ?? null,
+				aleLuduColumns,
+			);
 			return {
 				key: player
 					? `player-${player.id}`
@@ -1088,9 +1078,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		gameState.gameState === GameState.DISCUSSION && renderPlayers.length > 0;
 	const aleLuduSlotCount =
 		rustMeetingCards?.length ??
-		(aleLuduColumns > 0
-			? aleLuduRenderPlayers.length
-			: (frozenMeetingOrderRef.current?.length ?? renderPlayers.length));
+		(frozenMeetingOrderRef.current?.length ?? renderPlayers.length);
 	const aleLuduRows =
 		aleLuduColumns > 0
 			? Math.max(1, Math.ceil(aleLuduSlotCount / aleLuduColumns))
@@ -1158,19 +1146,13 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 		tabletWidthPct: tuning.tabletWidthPct,
 		tabletHeightPct: tuning.tabletHeightPct,
 	});
-	const debugGuidePlayers =
-		aleLuduColumns > 0 ? aleLuduRenderPlayers : renderPlayers;
 	const debugGuides = showAleLuduDebug
-		? debugGuidePlayers.map((player, index) => {
-				const cardIndex =
-					aleLuduColumns > 0
-						? index
-						: (frozenCardIndexById.get(player.id) ?? index);
-				const fallbackStyle = getAleLuduCardStyle(cardIndex, tuning);
+		? overlaySlots.map(({ player, slotIndex, key }) => {
+				const fallbackStyle = getAleLuduCardStyle(slotIndex, tuning);
 
 				return (
 					<div
-						key={`debug-${player.id}`}
+						key={`debug-${key}`}
 						style={{
 							...fallbackStyle,
 							position: "absolute",
@@ -1189,7 +1171,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 							textShadow: "0 0 4px #000, 0 0 4px #000",
 						}}
 					>
-						#{index} {truncateName(player.name, 10)}
+						#{slotIndex} {player ? truncateName(player.name, 10) : "empty"}
 					</div>
 				);
 			})
