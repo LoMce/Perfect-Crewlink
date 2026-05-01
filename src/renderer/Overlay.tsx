@@ -552,11 +552,6 @@ interface MeetingHudProps {
 	playerColors: string[][];
 }
 
-interface MeetingOverlaySlot {
-	key: string;
-	player: Player | null;
-}
-
 function isClientVoiceStateFresh(
 	player: Player,
 	voiceState: VoiceState,
@@ -609,31 +604,24 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 	);
 	const rustMeetingCards =
 		gameState.gameState === GameState.DISCUSSION
-			? gameState.meetingHud?.cards
-			: undefined;
+			? (gameState.meetingHud?.cards ?? [])
+			: [];
 	const playerById = new Map(
 		(gameState.players ?? []).map((player) => [player.id, player]),
 	);
-	const overlaySlots: MeetingOverlaySlot[] =
-		rustMeetingCards?.map((card, index) => {
-			const player = card.visible
-				? (playerById.get(card.playerId) ?? null)
-				: null;
-			return {
-				key: player
-					? `meetingCard-${card.playerId}`
-					: `meetingCardPlaceholder-${card.playerId}-${index}`,
-				player,
-			};
-		}) ?? [];
-	const canRenderMeetingHud =
-		gameState.gameState === GameState.DISCUSSION && overlaySlots.length > 0;
 	const classes = useStyles({
 		width,
 		height,
 		oldHud: gameState.oldMeetingHud,
 	});
-	const overlays = overlaySlots.map(({ player, key }) => {
+	const overlays = rustMeetingCards.map((card, index) => {
+		const player = card.visible
+			? (playerById.get(card.playerId) ?? null)
+			: null;
+		const key = player
+			? `meetingCard-${card.playerId}`
+			: `meetingCardPlaceholder-${card.playerId}-${index}`;
+
 		if (!player) {
 			return (
 				<div
@@ -664,7 +652,7 @@ const MeetingHud: React.FC<MeetingHudProps> = ({
 			/>
 		);
 	});
-	if (!canRenderMeetingHud) return null;
+	if (rustMeetingCards.length === 0) return null;
 
 	return (
 		<div className={classes.meetingHud}>
