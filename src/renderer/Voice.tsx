@@ -90,12 +90,19 @@ interface ClientAudioActivityState {
 interface PeerAudioMonitor {
 	clientId: number;
 	intervalId: number;
+	stream: MediaStream;
 	samples: Float32Array<ArrayBuffer>;
 	analyser: AnalyserNode;
 	smoothedLevel: number;
 	speaking: boolean;
 	audible: boolean;
 	lastActivityAt: number;
+	disconnectedAt: number;
+}
+
+interface PeerConnectionInternals extends Peer.Instance {
+	_pc?: RTCPeerConnection;
+	readonly destroyed: boolean;
 }
 
 interface ConnectionStuff {
@@ -156,6 +163,7 @@ const REMOTE_AUDIO_AUDIBLE_OFF = 0.012;
 const REMOTE_AUDIO_SPEAKING_ON = 0.045;
 const REMOTE_AUDIO_SPEAKING_OFF = 0.024;
 const REMOTE_AUDIO_TALKING_GRACE_MS = 750;
+const REMOTE_AUDIO_DISCONNECT_GRACE_MS = 1500;
 const AUDIO_PARAM_SMOOTHING_SECONDS = 0.04;
 const AUDIO_MUFFLE_Q = 0.8;
 const AUDIO_RADIO_MUFFLE_OFF_FREQUENCY = 10;
@@ -760,7 +768,38 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		});
 	}
 
-	function startPeerAudioMonitor(peer: string, clientId: number, analyser: AnalyserNode) {
+	function hasLiveRemoteAudio(stream: MediaStream) {
+		return stream.getAudioTracks().some((track) => track.readyState === 'live' && !track.muted);
+	}
+
+	function isPeerTransportActive(peer: string) {
+		const connection = peerConnectionsRef.current[peer] as PeerConnectionInternals | undefined;
+		if (!connection || connection.destroyed) {
+			return false;
+		}
+
+		const peerConnection = connection._pc;
+		if (!peerConnection) {
+			return connection.connected !== false;
+		}
+
+		return !['disconnected', 'failed', 'closed'].includes(peerConnection.connectionState)
+			&& !['disconnected', 'failed', 'closed'].includes(peerConnection.iceConnectionState);
+	}
+
+	function markPeerAudioUnavailable(peer: string, monitor: PeerAudioMonitor) {
+		clearClientAudioActivity(monitor.clientId);
+		if (clientConnectionsRef.current[monitor.clientId]?.socketId === peer) {
+			upsertClientConnection(monitor.clientId, {
+				audioConnected: false,
+			});
+		}
+		monitor.smoothedLevel = 0;
+		monitor.speaking = false;
+		monitor.audible = false;
+	}
+
+	function startPeerAudioMonitor(peer: string, clientId: number, stream: MediaStream, analyser: AnalyserNode) {
 		const existing = peerAudioMonitors.current[peer];
 		if (existing) {
 			window.clearInterval(existing.intervalId);
@@ -769,29 +808,34 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 		const monitor: PeerAudioMonitor = {
 			clientId,
 			intervalId: 0,
+			stream,
 			samples: new Float32Array(analyser.fftSize) as Float32Array<ArrayBuffer>,
 			analyser,
 			smoothedLevel: 0,
 			speaking: false,
 			audible: false,
 			lastActivityAt: 0,
+			disconnectedAt: 0,
 		};
 
 		monitor.intervalId = window.setInterval(() => {
 			const activeClientId = socketClientsRef.current[peer]?.clientId;
 			if (activeClientId === undefined) {
-				clearClientAudioActivity(monitor.clientId);
-				if (clientConnectionsRef.current[monitor.clientId]?.socketId === peer) {
-					upsertClientConnection(monitor.clientId, {
-						audioConnected: false,
-					});
-				}
-				monitor.smoothedLevel = 0;
-				monitor.speaking = false;
-				monitor.audible = false;
+				markPeerAudioUnavailable(peer, monitor);
 				monitor.lastActivityAt = 0;
+				monitor.disconnectedAt = 0;
 				return;
 			}
+
+			if (!hasLiveRemoteAudio(monitor.stream) || !isPeerTransportActive(peer)) {
+				const now = Date.now();
+				monitor.disconnectedAt = monitor.disconnectedAt || now;
+				if (now - monitor.disconnectedAt >= REMOTE_AUDIO_DISCONNECT_GRACE_MS) {
+					markPeerAudioUnavailable(peer, monitor);
+				}
+				return;
+			}
+			monitor.disconnectedAt = 0;
 
 			if (activeClientId !== monitor.clientId) {
 				const oldClientId = monitor.clientId;
@@ -806,6 +850,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 				monitor.speaking = false;
 				monitor.audible = false;
 				monitor.lastActivityAt = 0;
+				monitor.disconnectedAt = 0;
 			}
 
 			monitor.analyser.getFloatTimeDomainData(monitor.samples);
@@ -1650,7 +1695,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 							audioConnected: true,
 							lastSeenAt: Date.now(),
 						});
-						startPeerAudioMonitor(peer, connectedClientId, analyser);
+						startPeerAudioMonitor(peer, connectedClientId, stream, analyser);
 					}
 
 					audioElements.current[peer] = {
@@ -1700,6 +1745,7 @@ const Voice: React.FC<VoiceProps> = function ({ t, error: initialError }: VoiceP
 				});
 				connection.on('error', (err) => {
 					console.error('Peer connection error with', peer, ':', err);
+					disconnectPeer(peer);
 				});
 				return connection;
 			}
